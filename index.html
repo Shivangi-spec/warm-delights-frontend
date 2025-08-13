@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warm Delights - Fresh from the Oven, Straight to Your Heart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">🧁 Warm Delights</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#menu">Menu</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="#" onclick="toggleCart()" class="cart-btn">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cart-count">0</span>
+                </a></li>
+            </ul>
+            <div class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
+        </nav>
+    </header>
+
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Fresh from the Oven, Straight to Your Heart</h1>
+            <p>Handcrafted with love, our delicious cakes, cookies, and treats bring warmth to every celebration</p>
+            <a href="#menu" class="cta-button">Explore Our Menu</a>
+        </div>
+    </section>
+
+    <section id="menu" class="section">
+        <h2>Our Warm Delights</h2>
+        <div class="menu-filters">
+            <button class="filter-btn active" onclick="filterMenu('all')">All</button>
+            <button class="filter-btn" onclick="filterMenu('Custom Cakes')">Custom Cakes</button>
+            <button class="filter-btn" onclick="filterMenu('Cookies')">Cookies</button>
+            <button class="filter-btn" onclick="filterMenu('Cupcakes')">Cupcakes</button>
+            <button class="filter-btn" onclick="filterMenu('Specialty Desserts')">Specialty Desserts</button>
+        </div>
+        <div id="menu-grid" class="menu-grid">
+            <!-- Menu items will be loaded here -->
+        </div>
+    </section>
+
+    <section id="about" class="section">
+        <div class="about-section">
+            <h2>Baked with Love Since Day One</h2>
+            <p>At Warm Delights, we believe every bite should tell a story of comfort, quality, and care. Our journey began with a simple mission: to create treats that bring people together and make ordinary moments extraordinary.</p>
+            <br>
+            <p>We use only the finest ingredients, time-honored techniques, and a generous helping of love in everything we bake. From our 100% eggless options to our elaborate theme cakes, we're committed to making every customer's dream dessert a delicious reality.</p>
+        </div>
+    </section>
+
+    <section id="contact" class="section">
+        <div class="contact-section">
+            <h2>Get in Touch</h2>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+1 (555) 123-4567</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>orders@warmdelights.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>123 Baker Street, Sweet City</span>
+                    </div>
+                </div>
+                <form id="contact-form" class="contact-form">
+                    <input type="text" id="contact-name" placeholder="Your Name" required>
+                    <input type="email" id="contact-email" placeholder="Your Email" required>
+                    <textarea id="contact-message" placeholder="Your Message" rows="5" required></textarea>
+                    <button type="submit" class="cta-button">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Shopping Cart Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Your Cart</h2>
+                <span class="close" onclick="toggleCart()">&times;</span>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <strong>Total: $<span id="cart-total">0.00</span></strong>
+                </div>
+                <button class="cta-button" onclick="showOrderForm()" id="checkout-btn" disabled>
+                    Proceed to Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Form Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Place Your Order</h2>
+                <span class="close" onclick="hideOrderForm()">&times;</span>
+            </div>
+            <form id="order-form" class="order-form">
+                <div class="form-group">
+                    <label for="customer-name">Full Name *</label>
+                    <input type="text" id="customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-email">Email *</label>
+                    <input type="email" id="customer-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">Phone Number *</label>
+                    <input type="tel" id="customer-phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="delivery-date">Preferred Delivery Date *</label>
+                    <input type="date" id="delivery-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="delivery-address">Delivery Address *</label>
+                    <textarea id="delivery-address" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="special-instructions">Special Instructions</label>
+                    <textarea id="special-instructions" rows="3" placeholder="Any special requests, allergies, or customization details..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reference-image">Reference Image (optional)</label>
+                    <input type="file" id="reference-image" accept="image/*">
+                    <small>Upload a reference image for custom designs</small>
+                </div>
+                <div class="form-group">
+                    <h3>Order Summary</h3>
+                    <div id="order-summary"></div>
+                    <div class="order-total">
+                        <strong>Total: $<span id="order-total">0.00</span></strong>
+                    </div>
+                </div>
+                <button type="submit" class="cta-button">Place Order</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Order Confirmed!</h2>
+                <span class="close" onclick="hideConfirmation()">&times;</span>
+            </div>
+            <div class="confirmation-content">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #4caf50; margin-bottom: 1rem;"></i>
+                <p>Thank you for your order!</p>
+                <p>Your order ID is: <strong id="order-id"></strong></p>
+                <p>We'll contact you within 24 hours to confirm the details.</p>
+                <button class="cta-button" onclick="hideConfirmation()">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Warm Delights. Made with ❤️ for sweet moments.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
