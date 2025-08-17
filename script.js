@@ -1,4 +1,4 @@
-// Warm Delights Frontend JavaScript - WITH CORRECT RAILWAY URL
+// Warm Delights Frontend JavaScript - WITH ENHANCED ERROR HANDLING
 // YOUR ACTUAL RAILWAY BACKEND URL
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
@@ -7,6 +7,20 @@ let galleryImages = [];
 let currentImageIndex = 0;
 let allMenuItems = [];
 let currentCategory = 'all';
+
+// Debug function to check API connectivity
+async function checkAPIConnection() {
+    try {
+        console.log('🔗 Checking API connection...');
+        const response = await fetch(API_BASE_URL.replace('/api', '/'));
+        const data = await response.json();
+        console.log('✅ Backend Status:', data);
+        return true;
+    } catch (error) {
+        console.error('❌ Backend connection failed:', error);
+        return false;
+    }
+}
 
 // Mobile menu toggle
 function toggleMenu() {
@@ -21,7 +35,7 @@ function toggleMenu() {
     }
 }
 
-// Load menu items from backend with category filtering
+// Enhanced load menu with better error handling
 async function loadMenu() {
     const menuGrid = document.getElementById('menuGrid');
     if (!menuGrid) return;
@@ -29,22 +43,64 @@ async function loadMenu() {
     try {
         showLoading(menuGrid);
         
-        const response = await fetch(`${API_BASE_URL}/menu`);
+        console.log('🍰 Loading menu from:', `${API_BASE_URL}/menu`);
+        
+        // Check API connection first
+        const isConnected = await checkAPIConnection();
+        if (!isConnected) {
+            throw new Error('Backend server is not accessible');
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/menu`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            mode: 'cors'
+        });
+        
+        console.log('📡 Menu response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
         
         allMenuItems = await response.json();
+        console.log('✅ Menu loaded:', allMenuItems.length, 'items');
+        
         displayMenuItems(allMenuItems);
         setupCategoryFilters();
         
     } catch (error) {
-        console.error('Error loading menu:', error);
+        console.error('❌ Menu loading error:', error);
+        
         menuGrid.innerHTML = `
-            <div class="menu-error">
-                <h3>❌ Unable to load menu. Please try again later.</h3>
-                <p>Our delicious creations will be showcased here.</p>
-                <p>Please check your connection and try again.</p>
+            <div class="menu-error" style="
+                grid-column: 1 / -1; 
+                text-align: center; 
+                padding: 40px; 
+                background: #ffe6e6; 
+                border-radius: 10px; 
+                border: 2px solid #ff9999;
+            ">
+                <h3 style="color: #cc0000; margin-bottom: 10px;">❌ Unable to load menu</h3>
+                <p style="margin-bottom: 10px;"><strong>Error:</strong> ${error.message}</p>
+                <p style="margin-bottom: 15px;">Our delicious creations will be showcased here.</p>
+                <button onclick="loadMenu()" style="
+                    padding: 10px 20px; 
+                    background: #e8a5b7; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 5px; 
+                    cursor: pointer; 
+                    font-size: 14px;
+                ">
+                    🔄 Try Again
+                </button>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Check your internet connection or try again later.
+                </p>
             </div>
         `;
     }
@@ -62,14 +118,18 @@ function displayMenuItems(items) {
 
     menuGrid.innerHTML = items.map(item => `
         <div class="menu-item" data-category="${item.category.toLowerCase()}">
-            <img src="${API_BASE_URL.replace('/api', '')}${item.image}" alt="${item.name}" class="menu-image" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\'><rect width=\\'300\\' height=\\'200\\' fill=\\'%23f4c2c2\\'/><text x=\\'150\\' y=\\'100\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23d67b8a\\' font-family=\\'Arial\\' font-size=\\'20\\'>${item.name}</text></svg>'">
+            <img src="${API_BASE_URL.replace('/api', '')}${item.image}" 
+                 alt="${item.name}" 
+                 class="menu-image" 
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\'><rect width=\\'300\\' height=\\'200\\' fill=\\'%23f4c2c2\\'/><text x=\\'150\\' y=\\'100\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23d67b8a\\' font-family=\\'Arial\\' font-size=\\'20\\'>${item.name}</text></svg>'"
+                 style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 15px;">
             <h3>${item.name}</h3>
             <p class="description">${item.description}</p>
-            <div class="menu-item-footer">
+            <div class="menu-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                 <span class="price">₹${item.price}${item.priceUnit ? '/' + item.priceUnit : ''}</span>
-                ${item.eggless ? '<span class="eggless-badge">🥚 Eggless</span>' : ''}
+                ${item.eggless ? '<span class="eggless-badge" style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">🥚 Eggless</span>' : ''}
             </div>
-            ${item.customizable ? '<p class="customizable">✨ Customizable</p>' : ''}
+            ${item.customizable ? '<p class="customizable" style="margin-top: 8px; color: #e8a5b7; font-weight: bold;">✨ Customizable</p>' : ''}
         </div>
     `).join('');
 }
@@ -86,10 +146,23 @@ function setupCategoryFilters() {
     const categories = ['all', ...new Set(allMenuItems.map(item => item.category.toLowerCase()))];
     
     const filtersHTML = `
-        <div class="category-filters">
+        <div class="category-filters" style="text-align: center; margin: 30px 0;">
             ${categories.map(category => `
                 <button class="filter-btn ${category === currentCategory ? 'active' : ''}" 
-                        onclick="filterMenu('${category}')">
+                        onclick="filterMenu('${category}')"
+                        style="
+                            margin: 5px; 
+                            padding: 8px 16px; 
+                            border: 2px solid #e8a5b7; 
+                            background: ${category === currentCategory ? '#e8a5b7' : 'white'}; 
+                            color: ${category === currentCategory ? 'white' : '#e8a5b7'}; 
+                            border-radius: 20px; 
+                            cursor: pointer; 
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                        "
+                        onmouseover="if (!this.classList.contains('active')) { this.style.background = '#f4c2c2'; }"
+                        onmouseout="if (!this.classList.contains('active')) { this.style.background = 'white'; }">
                     ${category.charAt(0).toUpperCase() + category.slice(1)}
                 </button>
             `).join('')}
@@ -107,8 +180,13 @@ function filterMenu(category) {
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(btn => {
         btn.classList.remove('active');
+        btn.style.background = 'white';
+        btn.style.color = '#e8a5b7';
+        
         if (btn.textContent.toLowerCase() === category || (category === 'all' && btn.textContent.toLowerCase() === 'all')) {
             btn.classList.add('active');
+            btn.style.background = '#e8a5b7';
+            btn.style.color = 'white';
         }
     });
 
@@ -128,10 +206,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Load initial data
-    loadMenu();
-    loadGallery();
+    setTimeout(() => {
+        loadMenu();
+        loadGallery();
+    }, 1000); // Delay to ensure DOM is ready
 });
 
+// Handle image upload with enhanced error handling
 async function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -158,17 +239,23 @@ async function handleImageUpload(event) {
         uploadBtn.textContent = '⏳ Uploading...';
         uploadBtn.disabled = true;
 
+        console.log('📸 Uploading image to:', `${API_BASE_URL}/gallery/upload`);
+
         const response = await fetch(`${API_BASE_URL}/gallery/upload`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            mode: 'cors'
         });
 
+        console.log('📡 Upload response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Upload failed: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
-        console.log('Upload successful:', result);
+        console.log('✅ Upload successful:', result);
 
         // Reset form
         event.target.value = '';
@@ -180,8 +267,8 @@ async function handleImageUpload(event) {
         alert('Image uploaded successfully!');
 
     } catch (error) {
-        console.error('Upload error:', error);
-        alert('Failed to upload image. Please try again.');
+        console.error('❌ Upload error:', error);
+        alert(`Failed to upload image: ${error.message}`);
     } finally {
         // Reset button state
         const uploadBtn = document.querySelector('.upload-btn');
@@ -190,18 +277,31 @@ async function handleImageUpload(event) {
     }
 }
 
-// Load gallery images
+// Enhanced load gallery with better error handling
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/gallery`);
+        console.log('🖼️ Loading gallery from:', `${API_BASE_URL}/gallery`);
+        
+        const response = await fetch(`${API_BASE_URL}/gallery`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            mode: 'cors'
+        });
+
+        console.log('📡 Gallery response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const images = await response.json();
+        console.log('✅ Gallery loaded:', images.length, 'images');
         
         if (images.length === 0) {
             galleryGrid.innerHTML = `
@@ -218,19 +318,53 @@ async function loadGallery() {
             <div class="gallery-item">
                 <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
                      alt="${image.originalName}" 
-                     onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')">
-                <button class="delete-btn" onclick="deleteImage(${image.id})" title="Delete Image">
+                     onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
+                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;">
+                <button class="delete-btn" 
+                        onclick="deleteImage(${image.id})" 
+                        title="Delete Image"
+                        style="
+                            position: absolute; 
+                            top: 5px; 
+                            right: 5px; 
+                            background: rgba(255,0,0,0.8); 
+                            border: none; 
+                            border-radius: 50%; 
+                            width: 30px; 
+                            height: 30px; 
+                            color: white; 
+                            cursor: pointer; 
+                            display: none;
+                        ">
                     🗑️
                 </button>
             </div>
         `).join('');
 
     } catch (error) {
-        console.error('Error loading gallery:', error);
+        console.error('❌ Gallery loading error:', error);
+        
         galleryGrid.innerHTML = `
-            <div class="gallery-placeholder">
-                <h3>❌ Failed to Load Gallery</h3>
-                <p>Please try again later.</p>
+            <div class="gallery-placeholder" style="
+                background: #ffe6e6; 
+                border: 2px solid #ff9999; 
+                padding: 40px; 
+                text-align: center; 
+                border-radius: 10px;
+            ">
+                <h3 style="color: #cc0000;">❌ Failed to Load Gallery</h3>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <button onclick="loadGallery()" style="
+                    margin-top: 15px; 
+                    padding: 8px 16px; 
+                    background: #e8a5b7; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 5px; 
+                    cursor: pointer;
+                ">
+                    🔄 Try Again
+                </button>
             </div>
         `;
     }
@@ -243,21 +377,27 @@ async function deleteImage(imageId) {
     }
 
     try {
+        console.log('🗑️ Deleting image:', imageId);
+        
         const response = await fetch(`${API_BASE_URL}/gallery/${imageId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            mode: 'cors'
         });
 
         if (!response.ok) {
-            throw new Error(`Delete failed: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Delete failed: ${response.status} - ${errorText}`);
         }
 
+        console.log('✅ Image deleted successfully');
+        
         // Refresh gallery
         await loadGallery();
         alert('Image deleted successfully!');
 
     } catch (error) {
-        console.error('Delete error:', error);
-        alert('Failed to delete image. Please try again.');
+        console.error('❌ Delete error:', error);
+        alert(`Failed to delete image: ${error.message}`);
     }
 }
 
@@ -280,7 +420,7 @@ function openImageModal(imageUrl) {
     modal.onclick = () => document.body.removeChild(modal);
 }
 
-// Contact form handling
+// Enhanced contact form handling
 document.addEventListener('DOMContentLoaded', function() {
     const contactForm = document.getElementById('contactForm');
     
@@ -306,16 +446,22 @@ async function handleContactForm(event) {
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
 
+        console.log('📧 Sending contact form to:', `${API_BASE_URL}/contact`);
+
         const response = await fetch(`${API_BASE_URL}/contact`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            mode: 'cors'
         });
 
+        console.log('📡 Contact response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const result = await response.json();
@@ -328,8 +474,8 @@ async function handleContactForm(event) {
         }
 
     } catch (error) {
-        console.error('Contact form error:', error);
-        alert('Failed to send message. Please try again or contact us directly.');
+        console.error('❌ Contact form error:', error);
+        alert(`Failed to send message: ${error.message}`);
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -338,7 +484,32 @@ async function handleContactForm(event) {
 
 // Utility function to show loading state
 function showLoading(element) {
-    element.innerHTML = '<div class="loading">Loading...</div>';
+    element.innerHTML = `
+        <div class="loading" style="
+            text-align: center; 
+            padding: 40px; 
+            color: #e8a5b7;
+            grid-column: 1 / -1;
+        ">
+            <div style="
+                display: inline-block; 
+                width: 40px; 
+                height: 40px; 
+                border: 4px solid #f3f3f3; 
+                border-top: 4px solid #e8a5b7; 
+                border-radius: 50%; 
+                animation: spin 2s linear infinite;
+                margin-bottom: 15px;
+            "></div>
+            <p>Loading...</p>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        </div>
+    `;
 }
 
 // Smooth scrolling for navigation links
@@ -359,5 +530,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+    });
+});
+
+// Connection check on page load
+window.addEventListener('load', function() {
+    console.log('🚀 Warm Delights website loaded');
+    console.log('🔗 Backend URL:', API_BASE_URL);
+    
+    // Show connection status
+    checkAPIConnection().then(isConnected => {
+        if (isConnected) {
+            console.log('✅ Backend connection successful');
+        } else {
+            console.log('❌ Backend connection failed - some features may not work');
+        }
     });
 });
