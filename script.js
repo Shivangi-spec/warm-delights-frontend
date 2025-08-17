@@ -45,12 +45,6 @@ async function loadMenu() {
         
         console.log('🍰 Loading menu from:', `${API_BASE_URL}/menu`);
         
-        // Check API connection first
-        const isConnected = await checkAPIConnection();
-        if (!isConnected) {
-            throw new Error('Backend server is not accessible');
-        }
-        
         const response = await fetch(`${API_BASE_URL}/menu`, {
             method: 'GET',
             headers: {
@@ -98,9 +92,6 @@ async function loadMenu() {
                 ">
                     🔄 Try Again
                 </button>
-                <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                    Check your internet connection or try again later.
-                </p>
             </div>
         `;
     }
@@ -212,25 +203,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000); // Delay to ensure DOM is ready
 });
 
-// Handle image upload with enhanced error handling
+// **FIXED HANDLE IMAGE UPLOAD FUNCTION**
 async function handleImageUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('❌ No file selected');
+        return;
+    }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+    console.log('📸 Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        lastModified: file.lastModified
+    });
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
         return;
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        alert('Please select an image file (JPEG, PNG, GIF, etc.)');
         return;
     }
 
+    // **CORRECTED FORM DATA CREATION**
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('image', file); // MUST match multer field name
+    
+    // Debug form data
+    console.log('📋 FormData contents:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
 
     try {
         // Show loading state
@@ -239,22 +247,41 @@ async function handleImageUpload(event) {
         uploadBtn.textContent = '⏳ Uploading...';
         uploadBtn.disabled = true;
 
-        console.log('📸 Uploading image to:', `${API_BASE_URL}/gallery/upload`);
+        console.log('📤 Uploading to:', `${API_BASE_URL}/gallery/upload`);
 
+        // **FIXED FETCH REQUEST**
         const response = await fetch(`${API_BASE_URL}/gallery/upload`, {
             method: 'POST',
-            body: formData,
-            mode: 'cors'
+            body: formData, // Don't set Content-Type header - let browser set it
+            mode: 'cors',
+            credentials: 'omit'
         });
 
         console.log('📡 Upload response status:', response.status);
+        console.log('📡 Upload response headers:', response.headers);
+
+        // Read response
+        const responseText = await response.text();
+        console.log('📄 Raw response:', responseText);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+            let errorData;
+            try {
+                errorData = JSON.parse(responseText);
+            } catch {
+                errorData = { error: 'Upload failed', message: responseText };
+            }
+            throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
         }
 
-        const result = await response.json();
+        // Parse successful response
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch {
+            throw new Error('Invalid response format');
+        }
+
         console.log('✅ Upload successful:', result);
 
         // Reset form
@@ -264,7 +291,7 @@ async function handleImageUpload(event) {
         await loadGallery();
         
         // Show success message
-        alert('Image uploaded successfully!');
+        alert('Image uploaded successfully! 🎉');
 
     } catch (error) {
         console.error('❌ Upload error:', error);
@@ -272,8 +299,10 @@ async function handleImageUpload(event) {
     } finally {
         // Reset button state
         const uploadBtn = document.querySelector('.upload-btn');
-        uploadBtn.textContent = '📸 Upload New Image';
-        uploadBtn.disabled = false;
+        if (uploadBtn) {
+            uploadBtn.textContent = '📸 Upload New Image';
+            uploadBtn.disabled = false;
+        }
     }
 }
 
