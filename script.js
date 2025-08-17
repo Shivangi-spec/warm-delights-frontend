@@ -557,7 +557,7 @@ window.addEventListener('load', function() {
     });
 });
 
-// CUSTOM CHATBOT FUNCTIONALITY
+// UPDATED CHATBOT FUNCTIONALITY WITH MENU CATEGORIES
 let chatbotOpen = false;
 
 function toggleChatbot() {
@@ -577,7 +577,7 @@ function toggleChatbot() {
 
 function handleQuickResponse(type) {
     const responses = {
-        menu: "Here's our menu! We have delicious eggless cakes, cookies, and cupcakes. Would you like me to show you our popular items?",
+        menu: "Here's our menu categories! What would you like to explore? 🍰",
         hours: "We're open Mon-Sat: 9AM-7PM and Sun: 10AM-5PM. We're located at #60B, Fio Homes 2, Dhakoli, Zirakpur, 160104. 🕒",
         order: "To place an order, you can use our shopping cart on the website or contact us directly via WhatsApp at +918847306427. What would you like to order? 🛒",
         delivery: "We offer delivery across the Tricity! Delivery charges vary by location. Same-day delivery is available under certain conditions. We recommend ordering 2-3 days in advance for the best experience. 🚚"
@@ -587,9 +587,8 @@ function handleQuickResponse(type) {
     
     if (type === 'menu') {
         setTimeout(() => {
-            addMessage("Our most popular items are:", 'bot');
-            addMessage("🧁 Chocolate Cake - ₹500\n🧁 Vanilla Cake - ₹450\n🧁 Chocolate Cupcakes - ₹40/pc\n\nWould you like to add any to your cart?", 'bot');
-        }, 1000);
+            addMenuCategories();
+        }, 500);
     }
     
     if (type === 'order') {
@@ -604,6 +603,197 @@ function handleQuickResponse(type) {
             lastMessage.appendChild(whatsappBtn);
         }, 500);
     }
+}
+
+function addMenuCategories() {
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot-message';
+    
+    const messageText = document.createElement('p');
+    messageText.textContent = 'Choose a category to see our delicious options:';
+    messageDiv.appendChild(messageText);
+    
+    const categoryButtons = document.createElement('div');
+    categoryButtons.className = 'quick-buttons';
+    categoryButtons.style.marginTop = '15px';
+    
+    // Category buttons
+    const categories = [
+        { name: 'Cakes 🎂', id: 'cakes' },
+        { name: 'Cupcakes 🧁', id: 'cupcakes' },
+        { name: 'Cookies 🍪', id: 'cookies' }
+    ];
+    
+    categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.textContent = category.name;
+        btn.onclick = () => showCategoryItems(category.id);
+        btn.style.cssText = `
+            background: var(--secondary-pink); 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            color: var(--text-dark); 
+            margin: 5px; 
+            min-width: 120px;
+            transition: all 0.3s ease;
+        `;
+        btn.onmouseover = () => {
+            btn.style.background = 'var(--primary-pink)';
+            btn.style.color = 'white';
+        };
+        btn.onmouseout = () => {
+            btn.style.background = 'var(--secondary-pink)';
+            btn.style.color = 'var(--text-dark)';
+        };
+        categoryButtons.appendChild(btn);
+    });
+    
+    messageDiv.appendChild(categoryButtons);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function showCategoryItems(category) {
+    const menuItems = {
+        cakes: [
+            { name: 'Vanilla Cake', price: '₹450', desc: 'Classic soft, moist eggless vanilla cake' },
+            { name: 'Chocolate Cake', price: '₹500', desc: 'Rich, decadent eggless chocolate cake' },
+            { name: 'Strawberry Cake', price: '₹550', desc: 'Fresh strawberry eggless cake with real fruit' },
+            { name: 'Butterscotch Cake', price: '₹550', desc: 'Butterscotch delight with caramel flavoring' }
+        ],
+        cupcakes: [
+            { name: 'Chocolate Cupcakes', price: '₹40/pc', desc: 'Moist chocolate cupcakes with creamy frosting' },
+            { name: 'Banana Muffins', price: '₹35/pc', desc: 'Healthy whole wheat banana muffins' },
+            { name: 'Cheesecake Cupcakes', price: '₹55/pc', desc: 'Creamy cheesecake cupcakes with graham base' }
+        ],
+        cookies: [
+            { name: 'Peanut Butter Cookies', price: '₹50/pc', desc: 'Crunchy eggless peanut butter cookies' },
+            { name: 'Chocolate Cookies', price: '₹40/pc', desc: 'Soft eggless chocolate cookies with chips' },
+            { name: 'Almond Cookies', price: '₹45/pc', desc: 'Crunchy almond cookies with real pieces' },
+            { name: 'Butter Cream Cookies', price: '₹30/pc', desc: 'Smooth butter cream cookies' }
+        ]
+    };
+    
+    const categoryNames = {
+        cakes: 'Cakes 🎂',
+        cupcakes: 'Cupcakes 🧁',
+        cookies: 'Cookies 🍪'
+    };
+    
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot-message';
+    
+    // Category header
+    const headerText = document.createElement('p');
+    headerText.textContent = `Our ${categoryNames[category]}:`;
+    headerText.style.fontWeight = 'bold';
+    headerText.style.marginBottom = '15px';
+    messageDiv.appendChild(headerText);
+    
+    // Items container
+    const itemsContainer = document.createElement('div');
+    itemsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
+    
+    menuItems[category].forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.cssText = `
+            background: var(--light-pink); 
+            padding: 12px; 
+            border-radius: 10px; 
+            border-left: 3px solid var(--primary-pink);
+        `;
+        
+        const itemHeader = document.createElement('div');
+        itemHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;';
+        
+        const itemName = document.createElement('strong');
+        itemName.textContent = item.name;
+        itemName.style.color = 'var(--primary-pink)';
+        
+        const itemPrice = document.createElement('span');
+        itemPrice.textContent = item.price;
+        itemPrice.style.cssText = 'color: var(--dark-pink); font-weight: bold;';
+        
+        itemHeader.appendChild(itemName);
+        itemHeader.appendChild(itemPrice);
+        
+        const itemDesc = document.createElement('p');
+        itemDesc.textContent = item.desc;
+        itemDesc.style.cssText = 'font-size: 12px; color: var(--text-light); margin: 0;';
+        
+        itemDiv.appendChild(itemHeader);
+        itemDiv.appendChild(itemDesc);
+        itemsContainer.appendChild(itemDiv);
+    });
+    
+    messageDiv.appendChild(itemsContainer);
+    
+    // Add "Add to Cart" and "Back to Categories" buttons
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'quick-buttons';
+    actionButtons.style.marginTop = '15px';
+    
+    const addToCartBtn = document.createElement('button');
+    addToCartBtn.textContent = '🛒 Add to Cart';
+    addToCartBtn.onclick = () => {
+        addMessage('Great choice! You can add items to your cart directly from our menu section above, or contact us on WhatsApp for assistance! 😊', 'bot');
+    };
+    addToCartBtn.style.cssText = `
+        background: var(--primary-pink); 
+        color: white; 
+        border: none; 
+        padding: 8px 12px; 
+        border-radius: 15px; 
+        cursor: pointer; 
+        font-size: 12px; 
+        margin: 3px;
+    `;
+    
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '↩️ Back to Categories';
+    backBtn.onclick = () => {
+        addMessage('Choose another category:', 'bot');
+        setTimeout(() => addMenuCategories(), 300);
+    };
+    backBtn.style.cssText = `
+        background: var(--secondary-pink); 
+        border: none; 
+        padding: 8px 12px; 
+        border-radius: 15px; 
+        cursor: pointer; 
+        font-size: 12px; 
+        color: var(--text-dark); 
+        margin: 3px;
+    `;
+    
+    const orderBtn = document.createElement('button');
+    orderBtn.textContent = '💬 Order Now';
+    orderBtn.onclick = () => {
+        window.open('https://wa.me/918847306427?text=Hi! I\'d like to order some ' + categoryNames[category].toLowerCase() + ' from Warm Delights.', '_blank');
+    };
+    orderBtn.style.cssText = `
+        background: #25d366; 
+        color: white; 
+        border: none; 
+        padding: 8px 12px; 
+        border-radius: 15px; 
+        cursor: pointer; 
+        font-size: 12px; 
+        margin: 3px;
+    `;
+    
+    actionButtons.appendChild(addToCartBtn);
+    actionButtons.appendChild(backBtn);
+    actionButtons.appendChild(orderBtn);
+    messageDiv.appendChild(actionButtons);
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function handleChatbotEnter(event) {
@@ -629,20 +819,29 @@ function sendChatbotMessage() {
 }
 
 function generateChatbotResponse(message) {
+    if (message.includes('menu') || message.includes('what do you have')) {
+        addMessage('Here are our menu categories:', 'bot');
+        setTimeout(() => addMenuCategories(), 500);
+        return '';
+    }
+    
     if (message.includes('price') || message.includes('cost') || message.includes('much')) {
         return "Our prices range from ₹30-₹550! Cookies start at ₹30/pc, Cupcakes at ₹35/pc, and Cakes from ₹450. What specific item are you interested in? 💰";
     }
     
     if (message.includes('cake')) {
-        return "We have amazing eggless cakes! 🎂\n• Vanilla Cake - ₹450\n• Chocolate Cake - ₹500\n• Strawberry Cake - ₹550\n• Butterscotch Cake - ₹550\n\nAll are customizable! Which one interests you?";
+        showCategoryItems('cakes');
+        return '';
     }
     
     if (message.includes('cookie')) {
-        return "Our fresh cookies are a hit! 🍪\n• Peanut Butter - ₹50/pc\n• Chocolate - ₹40/pc\n• Almond - ₹45/pc\n• Butter Cream - ₹30/pc\n\nAll completely eggless!";
+        showCategoryItems('cookies');
+        return '';
     }
     
-    if (message.includes('cupcake')) {
-        return "Try our delicious cupcakes! 🧁\n• Chocolate Cupcakes - ₹40/pc\n• Banana Muffins - ₹35/pc\n• Cheesecake Cupcakes - ₹55/pc\n\nPerfect for any occasion!";
+    if (message.includes('cupcake') || message.includes('muffin')) {
+        showCategoryItems('cupcakes');
+        return '';
     }
     
     if (message.includes('delivery')) {
@@ -665,6 +864,8 @@ function generateChatbotResponse(message) {
 }
 
 function addMessage(text, sender) {
+    if (text === '') return;
+    
     const messagesContainer = document.getElementById('chatbot-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}-message`;
