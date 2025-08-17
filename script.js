@@ -1,10 +1,8 @@
-// Warm Delights Frontend JavaScript - WITH ENHANCED ERROR HANDLING
-// YOUR ACTUAL RAILWAY BACKEND URL
+// Warm Delights Frontend JavaScript - NO PUBLIC UPLOAD FUNCTIONALITY
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
 // Global variables
 let galleryImages = [];
-let currentImageIndex = 0;
 let allMenuItems = [];
 let currentCategory = 'all';
 
@@ -188,125 +186,7 @@ function filterMenu(category) {
     displayMenuItems(filteredItems);
 }
 
-// Gallery upload functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const uploadInput = document.getElementById('galleryImageUpload');
-    
-    if (uploadInput) {
-        uploadInput.addEventListener('change', handleImageUpload);
-    }
-    
-    // Load initial data
-    setTimeout(() => {
-        loadMenu();
-        loadGallery();
-    }, 1000); // Delay to ensure DOM is ready
-});
-
-// **FIXED HANDLE IMAGE UPLOAD FUNCTION**
-async function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        console.log('❌ No file selected');
-        return;
-    }
-
-    console.log('📸 Selected file:', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        lastModified: file.lastModified
-    });
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file (JPEG, PNG, GIF, etc.)');
-        return;
-    }
-
-    // **CORRECTED FORM DATA CREATION**
-    const formData = new FormData();
-    formData.append('image', file); // MUST match multer field name
-    
-    // Debug form data
-    console.log('📋 FormData contents:');
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-    }
-
-    try {
-        // Show loading state
-        const uploadBtn = document.querySelector('.upload-btn');
-        const originalText = uploadBtn.textContent;
-        uploadBtn.textContent = '⏳ Uploading...';
-        uploadBtn.disabled = true;
-
-        console.log('📤 Uploading to:', `${API_BASE_URL}/gallery/upload`);
-
-        // **FIXED FETCH REQUEST**
-        const response = await fetch(`${API_BASE_URL}/gallery/upload`, {
-            method: 'POST',
-            body: formData, // Don't set Content-Type header - let browser set it
-            mode: 'cors',
-            credentials: 'omit'
-        });
-
-        console.log('📡 Upload response status:', response.status);
-        console.log('📡 Upload response headers:', response.headers);
-
-        // Read response
-        const responseText = await response.text();
-        console.log('📄 Raw response:', responseText);
-
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = JSON.parse(responseText);
-            } catch {
-                errorData = { error: 'Upload failed', message: responseText };
-            }
-            throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
-        }
-
-        // Parse successful response
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch {
-            throw new Error('Invalid response format');
-        }
-
-        console.log('✅ Upload successful:', result);
-
-        // Reset form
-        event.target.value = '';
-        
-        // Refresh gallery
-        await loadGallery();
-        
-        // Show success message
-        alert('Image uploaded successfully! 🎉');
-
-    } catch (error) {
-        console.error('❌ Upload error:', error);
-        alert(`Failed to upload image: ${error.message}`);
-    } finally {
-        // Reset button state
-        const uploadBtn = document.querySelector('.upload-btn');
-        if (uploadBtn) {
-            uploadBtn.textContent = '📸 Upload New Image';
-            uploadBtn.disabled = false;
-        }
-    }
-}
-
-// Enhanced load gallery with better error handling
+// Load gallery images (NO UPLOAD FUNCTIONALITY FOR PUBLIC)
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
@@ -336,37 +216,19 @@ async function loadGallery() {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
                     <h3>🎂 Our Delicious Creations</h3>
-                    <p>No images uploaded yet. Upload your first image!</p>
+                    <p>Here you can see some of our beautiful baked creations!</p>
                 </div>
             `;
             return;
         }
 
-        // Display uploaded images
+        // Display uploaded images (NO DELETE BUTTONS FOR PUBLIC)
         galleryGrid.innerHTML = images.map(image => `
             <div class="gallery-item">
                 <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
                      alt="${image.originalName}" 
                      onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
                      style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;">
-                <button class="delete-btn" 
-                        onclick="deleteImage(${image.id})" 
-                        title="Delete Image"
-                        style="
-                            position: absolute; 
-                            top: 5px; 
-                            right: 5px; 
-                            background: rgba(255,0,0,0.8); 
-                            border: none; 
-                            border-radius: 50%; 
-                            width: 30px; 
-                            height: 30px; 
-                            color: white; 
-                            cursor: pointer; 
-                            display: none;
-                        ">
-                    🗑️
-                </button>
             </div>
         `).join('');
 
@@ -399,37 +261,6 @@ async function loadGallery() {
     }
 }
 
-// Delete image function
-async function deleteImage(imageId) {
-    if (!confirm('Are you sure you want to delete this image?')) {
-        return;
-    }
-
-    try {
-        console.log('🗑️ Deleting image:', imageId);
-        
-        const response = await fetch(`${API_BASE_URL}/gallery/${imageId}`, {
-            method: 'DELETE',
-            mode: 'cors'
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Delete failed: ${response.status} - ${errorText}`);
-        }
-
-        console.log('✅ Image deleted successfully');
-        
-        // Refresh gallery
-        await loadGallery();
-        alert('Image deleted successfully!');
-
-    } catch (error) {
-        console.error('❌ Delete error:', error);
-        alert(`Failed to delete image: ${error.message}`);
-    }
-}
-
 // Image modal function
 function openImageModal(imageUrl) {
     const modal = document.createElement('div');
@@ -456,6 +287,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (contactForm) {
         contactForm.addEventListener('submit', handleContactForm);
     }
+    
+    // Load initial data
+    loadMenu();
+    loadGallery();
 });
 
 async function handleContactForm(event) {
@@ -531,12 +366,6 @@ function showLoading(element) {
                 margin-bottom: 15px;
             "></div>
             <p>Loading...</p>
-            <style>
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            </style>
         </div>
     `;
 }
