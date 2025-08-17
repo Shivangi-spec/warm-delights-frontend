@@ -381,7 +381,7 @@ section h2 {
     left: 0;
 }
 
-/* UPDATED CONTACT SECTION (NO ICONS, CLEAN LAYOUT) */
+/* UPDATED CONTACT SECTION (REDUCED GAPS BETWEEN ITEMS) */
 .contact {
     background-color: var(--light-pink);
 }
@@ -396,16 +396,16 @@ section h2 {
 .contact-info h3,
 .contact-form h3 {
     color: var(--primary-pink);
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     font-family: 'Dancing Script', cursive;
     font-size: 2rem;
 }
 
 .contact-item {
-    margin-bottom: 15px;
-    padding: 20px;
+    margin-bottom: 8px; /* REDUCED from 15px to 8px */
+    padding: 15px 20px; /* REDUCED padding from 20px to 15px */
     background: var(--white);
-    border-radius: 15px;
+    border-radius: 12px; /* REDUCED border radius for tighter look */
     box-shadow: var(--shadow);
     display: flex;
     align-items: center;
@@ -496,7 +496,8 @@ section h2 {
     .contact-item {
         flex-direction: column;
         text-align: center;
-        gap: 10px;
+        gap: 8px; /* REDUCED gap for mobile */
+        margin-bottom: 6px; /* REDUCED margin for mobile */
     }
     
     .contact-item strong {
