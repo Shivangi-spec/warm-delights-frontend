@@ -1,337 +1,233 @@
-// Global variables
-let menuItems = [];
-let cart = [];
-const API_BASE_URL = 'http://localhost:5000/api';
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    loadMenuItems();
-    updateCartDisplay();
-    setMinDeliveryDate();
-    
-    // Form submissions
-    document.getElementById('contact-form').addEventListener('submit', handleContactForm);
-    document.getElementById('order-form').addEventListener('submit', handleOrderForm);
-});
-
-// Load menu items from backend
-async function loadMenuItems() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/menu`);
-        menuItems = await response.json();
-        displayMenuItems(menuItems);
-    } catch (error) {
-        console.error('Error loading menu items:', error);
-        document.getElementById('menu-grid').innerHTML = '<div class="loading">Error loading menu items. Please try again later.</div>';
-    }
-}
-
-// Display menu items
-function displayMenuItems(items) {
-    const menuGrid = document.getElementById('menu-grid');
-    
-    if (items.length === 0) {
-        menuGrid.innerHTML = '<div class="loading">No items found.</div>';
-        return;
-    }
-    
-    menuGrid.innerHTML = items.map(item => `
-        <div class="menu-item" data-category="${item.category}">
-            <img src="${API_BASE_URL}${item.image}" alt="${item.name}" onerror="this.src='${API_BASE_URL}/placeholder/300/200'">
-            <h3>${item.name}</h3>
-            <div class="price">$${item.price}</div>
-            <p>${item.description}</p>
-            <div class="menu-item-actions">
-                <div class="quantity-controls">
-                    <button class="quantity-btn" onclick="changeQuantity(${item.id}, -1)">-</button>
-                    <span id="quantity-${item.id}">1</span>
-                    <button class="quantity-btn" onclick="changeQuantity(${item.id}, 1)">+</button>
-                </div>
-                <button class="add-to-cart-btn" onclick="addToCart(${item.id})">
-                    Add to Cart
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Filter menu items
-function filterMenu(category) {
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    const filteredItems = category === 'all' 
-        ? menuItems 
-        : menuItems.filter(item => item.category === category);
-    
-    displayMenuItems(filteredItems);
-}
-
-// Change quantity
-function changeQuantity(itemId, change) {
-    const quantityElement = document.getElementById(`quantity-${itemId}`);
-    let quantity = parseInt(quantityElement.textContent) + change;
-    quantity = Math.max(1, quantity);
-    quantityElement.textContent = quantity;
-}
-
-// Add item to cart
-function addToCart(itemId) {
-    const item = menuItems.find(item => item.id === itemId);
-    const quantity = parseInt(document.getElementById(`quantity-${itemId}`).textContent);
-    
-    const existingCartItem = cart.find(cartItem => cartItem.id === itemId);
-    
-    if (existingCartItem) {
-        existingCartItem.quantity += quantity;
-    } else {
-        cart.push({
-            ...item,
-            quantity: quantity
-        });
-    }
-    
-    updateCartDisplay();
-    
-    // Reset quantity to 1
-    document.getElementById(`quantity-${itemId}`).textContent = '1';
-    
-    // Show feedback
-    showNotification('Item added to cart!');
-}
-
-// Remove item from cart
-function removeFromCart(itemId) {
-    cart = cart.filter(item => item.id !== itemId);
-    updateCartDisplay();
-    displayCartItems();
-}
-
-// Update cart display
-function updateCartDisplay() {
-    const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    document.getElementById('cart-count').textContent = cartCount;
-    
-    const checkoutBtn = document.getElementById('checkout-btn');
-    checkoutBtn.disabled = cart.length === 0;
-}
-
-// Toggle cart modal
-function toggleCart() {
-    const modal = document.getElementById('cart-modal');
-    if (modal.style.display === 'block') {
-        modal.style.display = 'none';
-    } else {
-        modal.style.display = 'block';
-        displayCartItems();
-    }
-}
-
-// Display cart items
-function displayCartItems() {
-    const cartItemsContainer = document.getElementById('cart-items');
-    const cartTotal = document.getElementById('cart-total');
-    
-    if (cart.length === 0) {
-        cartItemsContainer.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
-        cartTotal.textContent = '0.00';
-        return;
-    }
-    
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    cartItemsContainer.innerHTML = cart.map(item => `
-        <div class="cart-item">
-            <div class="cart-item-info">
-                <h4>${item.name}</h4>
-                <p>Quantity: ${item.quantity}</p>
-            </div>
-            <div>
-                <div class="cart-item-price">$${(item.price * item.quantity).toFixed(2)}</div>
-                <button onclick="removeFromCart(${item.id})" style="background: #f44336; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer; margin-top: 0.5rem;">Remove</button>
-            </div>
-        </div>
-    `).join('');
-    
-    cartTotal.textContent = total.toFixed(2);
-}
-
-// Show order form
-function showOrderForm() {
-    document.getElementById('cart-modal').style.display = 'none';
-    document.getElementById('order-modal').style.display = 'block';
-    displayOrderSummary();
-}
-
-// Hide order form
-function hideOrderForm() {
-    document.getElementById('order-modal').style.display = 'none';
-}
-
-// Display order summary
-function displayOrderSummary() {
-    const orderSummary = document.getElementById('order-summary');
-    const orderTotal = document.getElementById('order-total');
-    
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    orderSummary.innerHTML = cart.map(item => `
-        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-            <span>${item.quantity}x ${item.name}</span>
-            <span>$${(item.price * item.quantity).toFixed(2)}</span>
-        </div>
-    `).join('');
-    
-    orderTotal.textContent = total.toFixed(2);
-}
-
-// Set minimum delivery date (24 hours from now)
-function setMinDeliveryDate() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const minDate = tomorrow.toISOString().split('T')[0];
-    document.getElementById('delivery-date').min = minDate;
-}
-
-// Handle contact form submission
-async function handleContactForm(e) {
-    e.preventDefault();
-    
-    const formData = {
-        name: document.getElementById('contact-name').value,
-        email: document.getElementById('contact-email').value,
-        message: document.getElementById('contact-message').value
-    };
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/contact`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showNotification('Message sent successfully!');
-            document.getElementById('contact-form').reset();
-        } else {
-            showNotification('Failed to send message. Please try again.', 'error');
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
-        showNotification('Failed to send message. Please try again.', 'error');
-    }
-}
-
-// Handle order form submission
-async function handleOrderForm(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('customerName', document.getElementById('customer-name').value);
-    formData.append('email', document.getElementById('customer-email').value);
-    formData.append('phone', document.getElementById('customer-phone').value);
-    formData.append('deliveryDate', document.getElementById('delivery-date').value);
-    formData.append('deliveryAddress', document.getElementById('delivery-address').value);
-    formData.append('specialInstructions', document.getElementById('special-instructions').value);
-    formData.append('items', JSON.stringify(cart));
-    
-    const referenceImage = document.getElementById('reference-image').files[0];
-    if (referenceImage) {
-        formData.append('referenceImage', referenceImage);
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/orders`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Clear cart
-            cart = [];
-            updateCartDisplay();
-            
-            // Show confirmation
-            document.getElementById('order-id').textContent = result.orderId;
-            hideOrderForm();
-            showConfirmation();
-        } else {
-            showNotification('Failed to place order. Please try again.', 'error');
-        }
-    } catch (error) {
-        console.error('Error placing order:', error);
-        showNotification('Failed to place order. Please try again.', 'error');
-    }
-}
-
-// Show confirmation modal
-function showConfirmation() {
-    document.getElementById('confirmation-modal').style.display = 'block';
-}
-
-// Hide confirmation modal
-function hideConfirmation() {
-    document.getElementById('confirmation-modal').style.display = 'none';
-}
-
-// Show notification
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4caf50' : '#f44336'};
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 5px;
-        z-index: 3000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
+// API Base URL - Update this with your deployed backend URL
+const API_BASE_URL = 'https://your-app.up.railway.app/api'; // Replace with your actual backend URL
 
 // Mobile menu toggle
-function toggleMobileMenu() {
-    const navLinks = document.querySelector('.nav-links');
-    navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+function toggleMenu() {
+    const mobileNav = document.getElementById('mobileNav');
+    mobileNav.classList.toggle('active');
 }
 
-// Close modals when clicking outside
-window.onclick = function(event) {
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
+// Load menu items
+async function loadMenu() {
+    const menuGrid = document.getElementById('menuGrid');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/menu`);
+        const menuItems = await response.json();
+        
+        if (menuItems && menuItems.length > 0) {
+            menuGrid.innerHTML = menuItems.map(item => `
+                <div class="menu-item">
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                    <p class="price">₹${item.price}</p>
+                </div>
+            `).join('');
+        } else {
+            menuGrid.innerHTML = '<div class="loading">Menu items coming soon!</div>';
         }
+    } catch (error) {
+        console.error('Error loading menu:', error);
+        menuGrid.innerHTML = '<div class="loading">Unable to load menu. Please try again later.</div>';
+    }
+}
+
+// Gallery functionality
+let galleryImages = [
+    // You can add default images here
+];
+
+function loadGallery() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    
+    if (galleryImages.length > 0) {
+        galleryGrid.innerHTML = galleryImages.map((image, index) => `
+            <div class="gallery-item">
+                <img src="${image.url}" alt="${image.alt || 'Gallery image'}" onclick="openImageModal(${index})">
+            </div>
+        `).join('');
+    } else {
+        galleryGrid.innerHTML = `
+            <div class="gallery-placeholder">
+                <p>Gallery coming soon! Our delicious creations will be showcased here.</p>
+                <button onclick="uploadImage()">Upload Images</button>
+            </div>
+        `;
+    }
+}
+
+// Upload image functionality (placeholder)
+function uploadImage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    
+    input.onchange = function(event) {
+        const files = event.target.files;
+        
+        for (let file of files) {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    galleryImages.push({
+                        url: e.target.result,
+                        alt: file.name
+                    });
+                    loadGallery();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    };
+    
+    input.click();
+}
+
+// Image modal functionality
+function openImageModal(index) {
+    const modal = document.createElement('div');
+    modal.className = 'image-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <img src="${galleryImages[index].url}" alt="${galleryImages[index].alt}">
+        </div>
+    `;
+    
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    `;
+    
+    const modalContent = modal.querySelector('.modal-content');
+    modalContent.style.cssText = `
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+    `;
+    
+    const closeBtn = modal.querySelector('.close');
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: -40px;
+        right: 0;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+    `;
+    
+    const img = modal.querySelector('img');
+    img.style.cssText = `
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
+}
+
+// Contact form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const contactForm = document.getElementById('contactForm');
+    
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                message: document.getElementById('message').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/contact`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    alert('Message sent successfully! We will get back to you soon.');
+                    contactForm.reset();
+                } else {
+                    throw new Error('Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message. Please try calling us directly.');
+            }
+        });
+    }
+    
+    // Load content
+    loadMenu();
+    loadGallery();
+});
+
+// Smooth scrolling for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(e) {
+    const mobileNav = document.getElementById('mobileNav');
+    const toggleBtn = document.querySelector('.mobile-menu-toggle');
+    
+    if (mobileNav && mobileNav.classList.contains('active') && 
+        !mobileNav.contains(e.target) && !toggleBtn.contains(e.target)) {
+        mobileNav.classList.remove('active');
+    }
+});
+
+// Add loading states
+function showLoading(element) {
+    element.innerHTML = '<div class="loading">Loading...</div>';
+}
+
+// Responsive image handling
+function handleResponsiveImages() {
+    const images = document.querySelectorAll('img');
+    images.forEach(img => {
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
     });
 }
 
-// Add CSS animation for notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+// Initialize responsive features
+document.addEventListener('DOMContentLoaded', function() {
+    handleResponsiveImages();
+    
+    // Add touch support for mobile
+    if ('ontouchstart' in window) {
+        document.body.classList.add('touch-device');
     }
-`;
-document.head.appendChild(style);
+});
