@@ -121,47 +121,30 @@ header h1 {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* **UPDATED HERO SECTION WITH DARKER TEXT** */
+/* **UPDATED HERO SECTION WITH DARK TEXT** */
 .hero {
-    background: linear-gradient(rgba(232, 165, 183, 0.3), rgba(214, 123, 138, 0.3)),
+    background: linear-gradient(rgba(232, 165, 183, 0.8), rgba(214, 123, 138, 0.8)),
                 url('data:image/svg+xml,');
     padding: 80px 0;
     text-align: center;
-    position: relative;
-}
-
-/* **ADD DARK OVERLAY FOR BETTER TEXT READABILITY** */
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(74, 46, 56, 0.6); /* Dark overlay */
-    z-index: 1;
-}
-
-.hero .container {
-    position: relative;
-    z-index: 2;
+    color: var(--text-dark);
 }
 
 .hero h2 {
     font-family: 'Dancing Script', cursive;
     font-size: 3.5rem;
     margin-bottom: 20px;
-    color: #ffffff; /* **CHANGED TO WHITE** */
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* **ADDED TEXT SHADOW** */
+    color: #1a0f08; /* **VERY DARK BROWN/ALMOST BLACK** */
+    text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.9); /* **WHITE TEXT SHADOW FOR CONTRAST** */
     font-weight: 700;
 }
 
 .hero p {
     font-size: 1.4rem;
     margin-bottom: 30px;
-    color: #ffffff; /* **CHANGED TO WHITE** */
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* **ADDED TEXT SHADOW** */
-    font-weight: 500;
+    color: #2c1810; /* **DARK BROWN** */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); /* **WHITE TEXT SHADOW** */
+    font-weight: 600;
 }
 
 /* Section Styles */
@@ -498,11 +481,13 @@ footer {
     }
 
     .hero h2 {
-        font-size: 2.5rem; /* **ADJUSTED FOR MOBILE** */
+        font-size: 2.5rem;
+        color: #1a0f08; /* **DARK TEXT FOR MOBILE** */
     }
 
     .hero p {
-        font-size: 1.1rem; /* **ADJUSTED FOR MOBILE** */
+        font-size: 1.2rem;
+        color: #2c1810; /* **DARK TEXT FOR MOBILE** */
     }
 
     section {
@@ -542,11 +527,13 @@ footer {
     }
 
     .hero h2 {
-        font-size: 2rem; /* **ADJUSTED FOR MOBILE** */
+        font-size: 2rem;
+        color: #1a0f08; /* **DARK TEXT FOR MOBILE** */
     }
 
     .hero p {
-        font-size: 1rem; /* **ADJUSTED FOR MOBILE** */
+        font-size: 1rem;
+        color: #2c1810; /* **DARK TEXT FOR MOBILE** */
     }
 
     section h2 {
