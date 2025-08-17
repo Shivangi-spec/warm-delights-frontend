@@ -4,30 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warm Delights - Home Bakery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Header -->
     <header>
         <div class="container">
             <img src="Logo.png" alt="Warm Delights Logo" class="logo">
             <h1>Warm Delights</h1>
             <p class="tagline">Delivering Hugs Through Cakes</p>
-            <nav class="desktop-nav">
-                <a href="#home">Home</a>
-                <a href="#brand-story">Our Story</a>
-                <a href="#menu">Menu</a>
-                <a href="#gallery">Gallery</a>
-                <a href="#contact">Contact</a>
-            </nav>
+            
+            <!-- Mobile Menu Toggle -->
             <div class="mobile-menu-toggle" onclick="toggleMenu()">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
-            <nav class="mobile-nav" id="mobileNav">
+            
+            <!-- Desktop Navigation -->
+            <nav class="desktop-nav">
+                <a href="#home">Home</a>
+                <a href="#story">Our Story</a>
+                <a href="#menu">Menu</a>
+                <a href="#gallery">Gallery</a>
+                <a href="#contact">Contact</a>
+            </nav>
+            
+            <!-- Mobile Navigation -->
+            <nav id="mobileNav" class="mobile-nav">
                 <a href="#home" onclick="toggleMenu()">Home</a>
-                <a href="#brand-story" onclick="toggleMenu()">Our Story</a>
+                <a href="#story" onclick="toggleMenu()">Our Story</a>
                 <a href="#menu" onclick="toggleMenu()">Menu</a>
                 <a href="#gallery" onclick="toggleMenu()">Gallery</a>
                 <a href="#contact" onclick="toggleMenu()">Contact</a>
@@ -35,134 +42,137 @@
         </div>
     </header>
 
-    <main>
-        <section id="home" class="hero">
-            <div class="container">
-                <h2>Fresh • Delicious • Sweet • Tasty</h2>
-                <p>Home Bakery crafting delightful treats with love</p>
-                <div class="hero-features">
-                    <span class="feature">🥚 100% Eggless</span>
-                    <span class="feature">🎂 Customizable</span>
-                    <span class="feature">🏠 Fresh & Homemade</span>
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <h2>Welcome to Warm Delights</h2>
+            <p>Where every bite is a moment of pure joy</p>
+        </div>
+    </section>
+
+    <!-- Brand Story Section -->
+    <section id="story" class="brand-story">
+        <div class="container">
+            <h2>Our Story</h2>
+            <div class="story-content">
+                <p>It all began during the COVID-19 lockdown, when online courses were becoming a trend. Out of curiosity, I signed up for a cupcake-making workshop, not realizing that it would be the starting point of my entrepreneurial journey. I was excited to learn something new and couldn't wait to try it myself.</p>
+
+                <p>My first batch of cupcakes, however, didn't turn out well, and I felt disheartened. But thanks to my mom—my biggest supporter—I didn't give up. With her encouragement, I tried again, and this time I succeeded. That small win filled me with joy and gave me the confidence to keep going.</p>
+
+                <p>Soon after, I baked my first perfect cake for a friend's birthday. It was the first time my creation was going to be shared beyond my home, and to my delight, the feedback was overwhelmingly positive. That moment became the spark that motivated me to start my own home bakery in 2022.</p>
+
+                <p>Now, as we approach our third anniversary this September, I look back on a journey full of challenges, lessons, and growth. It hasn't always been easy, but it has taught me resilience and the importance of never giving up. Through it all, my mom has been my backbone—her constant support and belief in me continue to inspire everything I do.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section id="menu" class="menu">
+        <div class="container">
+            <h2>Our Menu</h2>
+            <div id="menuGrid" class="menu-grid">
+                <div class="loading">Loading delicious options...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <h2>Our Gallery</h2>
+            
+            <!-- Upload Section -->
+            <div class="gallery-upload">
+                <input type="file" id="galleryImageUpload" accept="image/*" style="display: none;">
+                <button onclick="document.getElementById('galleryImageUpload').click()" class="upload-btn">
+                    📸 Upload New Image
+                </button>
+            </div>
+            
+            <!-- Gallery Grid -->
+            <div id="galleryGrid" class="gallery-grid">
+                <div class="gallery-placeholder">
+                    <h3>🎂 Our Delicious Creations</h3>
+                    <p>Gallery images will be displayed here once uploaded.</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="brand-story" class="brand-story">
-            <div class="container">
-                <h2>Our Brand Story</h2>
-                <div class="story-content">
-                    <p>It all began during the COVID-19 lockdown, when online courses were becoming a trend. Out of curiosity, I signed up for a cupcake-making workshop, not realizing that it would be the starting point of my entrepreneurial journey. I was excited to learn something new and couldn't wait to try it myself.</p>
-                    
-                    <p>My first batch of cupcakes, however, didn't turn out well, and I felt disheartened. But thanks to my mom—my biggest supporter—I didn't give up. With her encouragement, I tried again, and this time I succeeded. That small win filled me with joy and gave me the confidence to keep going.</p>
-                    
-                    <p>Soon after, I baked my first perfect cake for a friend's birthday. It was the first time my creation was going to be shared beyond my home, and to my delight, the feedback was overwhelmingly positive. That moment became the spark that motivated me to start my own home bakery in 2022.</p>
-                    
-                    <p>Now, as we approach our third anniversary this September, I look back on a journey full of challenges, lessons, and growth. It hasn't always been easy, but it has taught me resilience and the importance of never giving up. Through it all, my mom has been my backbone—her constant support and belief in me continue to inspire everything I do.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="menu" class="menu">
-            <div class="container">
-                <h2>Our Menu</h2>
-                <div class="menu-categories">
-                    <button class="category-btn active" data-category="all">All Items</button>
-                    <button class="category-btn" data-category="Cakes">Cakes</button>
-                    <button class="category-btn" data-category="Cookies">Cookies</button>
-                    <button class="category-btn" data-category="Cupcakes">Cupcakes</button>
-                </div>
-                <div class="menu-grid" id="menuGrid">
-                    <!-- Menu items will be loaded dynamically -->
-                </div>
-                <div class="menu-notes">
-                    <h3>Important Notes:</h3>
+    <!-- Info Section -->
+    <section class="info-section">
+        <div class="container">
+            <h2>Why Choose Warm Delights?</h2>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>100% Eggless</h3>
                     <ul>
-                        <li>All our products are <strong>100% eggless</strong> and can be customised to your preferences.</li>
-                        <li>Prices may vary depending on the level of customisation; the ones mentioned here serve as a general guide.</li>
-                        <li>We also offer <strong>allergen-friendly options</strong> to suit your dietary needs.</li>
-                        <li>We also offer a wide range of bakery products such as breads, doughnuts, and dry cakes, prepared fresh on demand.</li>
+                        <li>All our products are completely eggless</li>
+                        <li>Perfect for vegetarians</li>
+                        <li>No compromise on taste or texture</li>
+                        <li>Safe for those with egg allergies</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>Fresh & Homemade</h3>
+                    <ul>
+                        <li>Baked fresh to order</li>
+                        <li>No preservatives or artificial additives</li>
+                        <li>Made with premium ingredients</li>
+                        <li>Traditional recipes with modern touch</li>
+                    </ul>
+                </div>
+                <div class="info-card">
+                    <h3>Custom Orders</h3>
+                    <ul>
+                        <li>Personalized cakes for special occasions</li>
+                        <li>Custom flavors and designs</li>
+                        <li>Advance booking available</li>
+                        <li>Special dietary requirements accommodated</li>
                     </ul>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="gallery" class="gallery">
-            <div class="container">
-                <h2>Gallery</h2>
-                <div class="gallery-grid" id="galleryGrid">
-                    <!-- Gallery images will be loaded dynamically -->
-                </div>
-            </div>
-        </section>
-
-        <section id="info" class="info-section">
-            <div class="container">
-                <div class="info-grid">
-                    <div class="info-card">
-                        <h3>Operating Hours</h3>
-                        <p><strong>9AM to 9PM</strong><br>7 days a week</p>
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2>Contact Us</h2>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Get in Touch</h3>
+                    <div class="contact-item">
+                        <strong>📞 Phone:</strong> <a href="tel:+1234567890">+1 (234) 567-890</a>
                     </div>
-                    
-                    <div class="info-card">
-                        <h3>Custom Orders</h3>
-                        <p>We're happy to bring your vision to life! Share a reference picture along with your preferences for size, flavour, and design, and we'll create a customised treat made just for you.</p>
+                    <div class="contact-item">
+                        <strong>📧 Email:</strong> <a href="mailto:orders@warmdelights.com">orders@warmdelights.com</a>
                     </div>
-                    
-                    <div class="info-card">
-                        <h3>Delivery Info</h3>
-                        <ul>
-                            <li>We offer delivery across the Tricity through multiple parcel options</li>
-                            <li>Delivery charges may vary depending on location</li>
-                            <li>Same-day delivery available under certain conditions</li>
-                            <li>Recommend placing orders 2–3 days in advance</li>
-                        </ul>
+                    <div class="contact-item">
+                        <strong>📍 Location:</strong> Local delivery available
+                    </div>
+                    <div class="contact-item">
+                        <strong>🕒 Hours:</strong> Mon-Sat: 9AM-7PM, Sun: 10AM-5PM
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <section id="contact" class="contact">
-            <div class="container">
-                <h2>Contact Us</h2>
-                <div class="contact-grid">
-                    <div class="contact-info">
-                        <h3>Get In Touch</h3>
-                        <div class="contact-item">
-                            <strong>Mobile:</strong> <a href="tel:8847306427">8847306427</a>
-                        </div>
-                        <div class="contact-item">
-                            <strong>WhatsApp:</strong> <a href="https://wa.me/918847306427">8847306427</a>
-                        </div>
-                        <div class="contact-item">
-                            <strong>Email:</strong> <a href="mailto:dayitagoyal10@gmail.com">dayitagoyal10@gmail.com</a>
-                        </div>
-                        <div class="contact-item">
-                            <strong>Address:</strong> #60B, Fio Homes 2, Dhakoli, Zirakpur, 160104
-                        </div>
-                        <div class="contact-item">
-                            <strong>Social:</strong> <a href="https://instagram.com/__.warmdelights.__" target="_blank">__.warmdelights.__</a>
-                        </div>
-                    </div>
-                    <div class="contact-form">
-                        <h3>Send Message</h3>
-                        <form id="contactForm">
-                            <input type="text" id="name" placeholder="Your Name" required>
-                            <input type="email" id="email" placeholder="Your Email" required>
-                            <input type="tel" id="phone" placeholder="Your Phone" required>
-                            <textarea id="message" placeholder="Your Message" rows="5" required></textarea>
-                            <button type="submit">Send Message</button>
-                        </form>
-                    </div>
+                <div class="contact-form">
+                    <h3>Send us a Message</h3>
+                    <form id="contactForm">
+                        <input type="text" id="name" placeholder="Your Name *" required>
+                        <input type="email" id="email" placeholder="Your Email *" required>
+                        <input type="tel" id="phone" placeholder="Your Phone">
+                        <textarea id="message" placeholder="Your Message *" rows="5" required></textarea>
+                        <button type="submit">Send Message</button>
+                    </form>
                 </div>
             </div>
-        </section>
-    </main>
+        </div>
+    </section>
 
+    <!-- Footer -->
     <footer>
         <div class="container">
-            <p>&copy; 2025 Warm Delights. All rights reserved.</p>
-            <p>Made with ❤️ for cake lovers everywhere</p>
+            <p>&copy; 2024 Warm Delights. Made with ❤️ for sweet moments.</p>
         </div>
     </footer>
 

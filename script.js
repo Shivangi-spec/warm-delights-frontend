@@ -1,5 +1,4 @@
 // Warm Delights Frontend JavaScript - WITH CORRECT RAILWAY URL
-
 // YOUR ACTUAL RAILWAY BACKEND URL
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
@@ -16,7 +15,6 @@ function toggleMenu() {
     
     if (mobileNav) {
         mobileNav.classList.toggle('active');
-        
         if (toggleBtn) {
             toggleBtn.classList.toggle('active');
         }
@@ -26,135 +24,271 @@ function toggleMenu() {
 // Load menu items from backend with category filtering
 async function loadMenu() {
     const menuGrid = document.getElementById('menuGrid');
-    
     if (!menuGrid) return;
-    
+
     try {
         showLoading(menuGrid);
         
         const response = await fetch(`${API_BASE_URL}/menu`);
-        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         allMenuItems = await response.json();
-        
         displayMenuItems(allMenuItems);
         setupCategoryFilters();
         
     } catch (error) {
         console.error('Error loading menu:', error);
         menuGrid.innerHTML = `
-            <div class="loading">
-                <p>Unable to load menu. Please try again later.</p>
-                <button onclick="loadMenu()" class="retry-btn">Retry</button>
+            <div class="menu-error">
+                <h3>❌ Unable to load menu. Please try again later.</h3>
+                <p>Our delicious creations will be showcased here.</p>
+                <p>Please check your connection and try again.</p>
             </div>
         `;
     }
 }
 
-// Display menu items based on category
+// Display menu items
 function displayMenuItems(items) {
     const menuGrid = document.getElementById('menuGrid');
-    
-    if (items && items.length > 0) {
-        menuGrid.innerHTML = items.map(item => `
-            <div class="menu-item" data-category="${item.category}" data-aos="fade-up">
-                <div class="menu-content">
-                    <h3>${item.name}</h3>
-                    <p class="category">${item.category}</p>
-                    <p class="description">${item.description}</p>
-                    <div class="menu-footer">
-                        <p class="price">₹${item.price.toFixed(2)}${item.priceUnit ? '/' + item.priceUnit : ''}</p>
-                        <div class="menu-badges">
-                            ${item.eggless ? '<span class="badge eggless">🥚 Eggless</span>' : ''}
-                            ${item.customizable ? '<span class="badge customizable">📝 Customizable</span>' : ''}
-                        </div>
-                    </div>
-                </div>
+    if (!menuGrid) return;
+
+    if (items.length === 0) {
+        menuGrid.innerHTML = '<div class="no-items">No items found in this category.</div>';
+        return;
+    }
+
+    menuGrid.innerHTML = items.map(item => `
+        <div class="menu-item" data-category="${item.category.toLowerCase()}">
+            <img src="${API_BASE_URL.replace('/api', '')}${item.image}" alt="${item.name}" class="menu-image" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\'><rect width=\\'300\\' height=\\'200\\' fill=\\'%23f4c2c2\\'/><text x=\\'150\\' y=\\'100\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23d67b8a\\' font-family=\\'Arial\\' font-size=\\'20\\'>${item.name}</text></svg>'">
+            <h3>${item.name}</h3>
+            <p class="description">${item.description}</p>
+            <div class="menu-item-footer">
+                <span class="price">₹${item.price}${item.priceUnit ? '/' + item.priceUnit : ''}</span>
+                ${item.eggless ? '<span class="eggless-badge">🥚 Eggless</span>' : ''}
             </div>
-        `).join('');
-    } else {
-        menuGrid.innerHTML = '<div class="loading">Menu items coming soon!</div>';
+            ${item.customizable ? '<p class="customizable">✨ Customizable</p>' : ''}
+        </div>
+    `).join('');
+}
+
+// Setup category filters
+function setupCategoryFilters() {
+    const menuSection = document.querySelector('.menu .container');
+    const existingFilters = menuSection.querySelector('.category-filters');
+    
+    if (existingFilters) {
+        existingFilters.remove();
+    }
+
+    const categories = ['all', ...new Set(allMenuItems.map(item => item.category.toLowerCase()))];
+    
+    const filtersHTML = `
+        <div class="category-filters">
+            ${categories.map(category => `
+                <button class="filter-btn ${category === currentCategory ? 'active' : ''}" 
+                        onclick="filterMenu('${category}')">
+                    ${category.charAt(0).toUpperCase() + category.slice(1)}
+                </button>
+            `).join('')}
+        </div>
+    `;
+    
+    const menuTitle = menuSection.querySelector('h2');
+    menuTitle.insertAdjacentHTML('afterend', filtersHTML);
+}
+
+// Filter menu by category
+function filterMenu(category) {
+    currentCategory = category;
+    
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase() === category || (category === 'all' && btn.textContent.toLowerCase() === 'all')) {
+            btn.classList.add('active');
+        }
+    });
+
+    const filteredItems = category === 'all' 
+        ? allMenuItems 
+        : allMenuItems.filter(item => item.category.toLowerCase() === category);
+    
+    displayMenuItems(filteredItems);
+}
+
+// Gallery upload functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadInput = document.getElementById('galleryImageUpload');
+    
+    if (uploadInput) {
+        uploadInput.addEventListener('change', handleImageUpload);
+    }
+    
+    // Load initial data
+    loadMenu();
+    loadGallery();
+});
+
+async function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        // Show loading state
+        const uploadBtn = document.querySelector('.upload-btn');
+        const originalText = uploadBtn.textContent;
+        uploadBtn.textContent = '⏳ Uploading...';
+        uploadBtn.disabled = true;
+
+        const response = await fetch(`${API_BASE_URL}/gallery/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Upload successful:', result);
+
+        // Reset form
+        event.target.value = '';
+        
+        // Refresh gallery
+        await loadGallery();
+        
+        // Show success message
+        alert('Image uploaded successfully!');
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload image. Please try again.');
+    } finally {
+        // Reset button state
+        const uploadBtn = document.querySelector('.upload-btn');
+        uploadBtn.textContent = '📸 Upload New Image';
+        uploadBtn.disabled = false;
     }
 }
 
-// Setup category filter buttons
-function setupCategoryFilters() {
-    const categoryBtns = document.querySelectorAll('.category-btn');
-    
-    categoryBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const category = btn.dataset.category;
-            
-            // Update active button
-            categoryBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            // Filter items
-            if (category === 'all') {
-                displayMenuItems(allMenuItems);
-            } else {
-                const filteredItems = allMenuItems.filter(item => item.category === category);
-                displayMenuItems(filteredItems);
-            }
-            
-            currentCategory = category;
-        });
-    });
-}
-
-// Load gallery
+// Load gallery images
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
-    
     if (!galleryGrid) return;
-    
+
     try {
-        showLoading(galleryGrid);
-        
         const response = await fetch(`${API_BASE_URL}/gallery`);
-        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const images = await response.json();
         
-        galleryImages = await response.json();
-        
-        if (galleryImages && galleryImages.length > 0) {
-            galleryGrid.innerHTML = galleryImages.map((image, index) => `
-                <div class="gallery-item" data-aos="zoom-in">
-                    <img src="${image.url}" alt="${image.name || 'Gallery image'}" loading="lazy">
-                </div>
-            `).join('');
-        } else {
+        if (images.length === 0) {
             galleryGrid.innerHTML = `
-                <div class="gallery-placeholder" data-aos="fade-up">
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">🧁</div>
-                        <h3>Gallery Coming Soon!</h3>
-                        <p>Our delicious creations will be showcased here.</p>
-                    </div>
+                <div class="gallery-placeholder">
+                    <h3>🎂 Our Delicious Creations</h3>
+                    <p>No images uploaded yet. Upload your first image!</p>
                 </div>
             `;
+            return;
         }
+
+        // Display uploaded images
+        galleryGrid.innerHTML = images.map(image => `
+            <div class="gallery-item">
+                <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
+                     alt="${image.originalName}" 
+                     onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')">
+                <button class="delete-btn" onclick="deleteImage(${image.id})" title="Delete Image">
+                    🗑️
+                </button>
+            </div>
+        `).join('');
+
     } catch (error) {
         console.error('Error loading gallery:', error);
         galleryGrid.innerHTML = `
             <div class="gallery-placeholder">
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">⚠️</div>
-                    <h3>Unable to Load Gallery</h3>
-                    <p>Please check your connection and try again.</p>
-                    <button onclick="loadGallery()" class="retry-btn">Retry</button>
-                </div>
+                <h3>❌ Failed to Load Gallery</h3>
+                <p>Please try again later.</p>
             </div>
         `;
     }
 }
 
-// Contact form submission
+// Delete image function
+async function deleteImage(imageId) {
+    if (!confirm('Are you sure you want to delete this image?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/gallery/${imageId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Delete failed: ${response.status}`);
+        }
+
+        // Refresh gallery
+        await loadGallery();
+        alert('Image deleted successfully!');
+
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete image. Please try again.');
+    }
+}
+
+// Image modal function
+function openImageModal(imageUrl) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); display: flex; justify-content: center;
+        align-items: center; z-index: 10000; cursor: pointer;
+    `;
+    
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+    
+    modal.appendChild(img);
+    document.body.appendChild(modal);
+    
+    modal.onclick = () => document.body.removeChild(modal);
+}
+
+// Contact form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const contactForm = document.getElementById('contactForm');
+    
+    if (contactForm) {
+        contactForm.addEventListener('submit', handleContactForm);
+    }
+});
+
 async function handleContactForm(event) {
     event.preventDefault();
     
@@ -164,14 +298,14 @@ async function handleContactForm(event) {
         phone: document.getElementById('phone').value,
         message: document.getElementById('message').value
     };
-    
+
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
     
     try {
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
-        
+
         const response = await fetch(`${API_BASE_URL}/contact`, {
             method: 'POST',
             headers: {
@@ -179,128 +313,51 @@ async function handleContactForm(event) {
             },
             body: JSON.stringify(formData)
         });
-        
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
         
-        if (response.ok && result.success) {
-            alert('Message sent successfully! We will get back to you soon. 📧');
+        if (result.success) {
+            alert('Message sent successfully! We\'ll get back to you soon.');
             event.target.reset();
         } else {
             throw new Error(result.message || 'Failed to send message');
         }
+
     } catch (error) {
-        console.error('Error sending message:', error);
-        alert('Failed to send message. Please try calling us directly at 8847306427.');
+        console.error('Contact form error:', error);
+        alert('Failed to send message. Please try again or contact us directly.');
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     }
 }
 
-// Utility functions
+// Utility function to show loading state
 function showLoading(element) {
-    element.innerHTML = `
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Loading...</p>
-        </div>
-    `;
+    element.innerHTML = '<div class="loading">Loading...</div>';
 }
 
 // Smooth scrolling for navigation links
-function initSmoothScrolling() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('nav a[href^="#"]');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
+            
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
                 });
-                
-                const mobileNav = document.getElementById('mobileNav');
-                if (mobileNav && mobileNav.classList.contains('active')) {
-                    toggleMenu();
-                }
             }
         });
     });
-}
-
-// Handle responsive images
-function handleResponsiveImages() {
-    const images = document.querySelectorAll('img');
-    images.forEach(img => {
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        
-        img.addEventListener('load', function() {
-            this.style.opacity = '1';
-        });
-        
-        img.addEventListener('error', function() {
-            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
-        });
-    });
-}
-
-// Close mobile menu when clicking outside
-function initMobileMenuHandling() {
-    document.addEventListener('click', function(e) {
-        const mobileNav = document.getElementById('mobileNav');
-        const toggleBtn = document.querySelector('.mobile-menu-toggle');
-        
-        if (mobileNav && mobileNav.classList.contains('active') && 
-            !mobileNav.contains(e.target) && !toggleBtn.contains(e.target)) {
-            mobileNav.classList.remove('active');
-        }
-    });
-}
-
-// Initialize everything when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Warm Delights website loaded! 🧁');
-    
-    loadMenu();
-    loadGallery();
-    initSmoothScrolling();
-    handleResponsiveImages();
-    initMobileMenuHandling();
-    
-    const contactForm = document.getElementById('contactForm');
-    if (contactForm) {
-        contactForm.addEventListener('submit', handleContactForm);
-    }
-    
-    if ('ontouchstart' in window) {
-        document.body.classList.add('touch-device');
-    }
 });
-
-// Handle page visibility change
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        loadGallery();
-    }
-});
-
-// Error handling for network issues
-window.addEventListener('online', function() {
-    console.log('Connection restored');
-    loadMenu();
-    loadGallery();
-});
-
-window.addEventListener('offline', function() {
-    console.log('Connection lost');
-});
-
-// Export functions for global access
-window.warmDelights = {
-    toggleMenu,
-    loadGallery,
-    loadMenu
-};
-/ /   U p d a t e d   f o r   R a i l w a y   b a c k e n d   c o n n e c t i o n  
- 
