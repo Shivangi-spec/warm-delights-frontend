@@ -1,7 +1,7 @@
-// Warm Delights Frontend JavaScript - Updated with Menu Categories
+// Warm Delights Frontend JavaScript - WITH CORRECT RAILWAY URL
 
-// API Base URL - Update this with your deployed backend URL
-const API_BASE_URL = 'https://your-app.up.railway.app/api'; // Replace with your actual Railway URL
+// YOUR ACTUAL RAILWAY BACKEND URL
+const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
 // Global variables
 let galleryImages = [];
@@ -33,6 +33,11 @@ async function loadMenu() {
         showLoading(menuGrid);
         
         const response = await fetch(`${API_BASE_URL}/menu`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         allMenuItems = await response.json();
         
         displayMenuItems(allMenuItems);
@@ -40,7 +45,12 @@ async function loadMenu() {
         
     } catch (error) {
         console.error('Error loading menu:', error);
-        menuGrid.innerHTML = '<div class="loading">Unable to load menu. Please try again later.</div>';
+        menuGrid.innerHTML = `
+            <div class="loading">
+                <p>Unable to load menu. Please try again later.</p>
+                <button onclick="loadMenu()" class="retry-btn">Retry</button>
+            </div>
+        `;
     }
 }
 
@@ -51,9 +61,6 @@ function displayMenuItems(items) {
     if (items && items.length > 0) {
         menuGrid.innerHTML = items.map(item => `
             <div class="menu-item" data-category="${item.category}" data-aos="fade-up">
-                <div class="menu-image">
-                    <img src="${API_BASE_URL}${item.image}" alt="${item.name}" loading="lazy">
-                </div>
                 <div class="menu-content">
                     <h3>${item.name}</h3>
                     <p class="category">${item.category}</p>
@@ -98,7 +105,7 @@ function setupCategoryFilters() {
     });
 }
 
-// Updated gallery functionality with backend integration
+// Load gallery
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     
@@ -108,34 +115,19 @@ async function loadGallery() {
         showLoading(galleryGrid);
         
         const response = await fetch(`${API_BASE_URL}/gallery`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         galleryImages = await response.json();
         
         if (galleryImages && galleryImages.length > 0) {
             galleryGrid.innerHTML = galleryImages.map((image, index) => `
                 <div class="gallery-item" data-aos="zoom-in">
-                    <img src="${API_BASE_URL}${image.url}" 
-                         alt="${image.originalName || 'Gallery image'}" 
-                         onclick="openImageModal(${index})"
-                         loading="lazy">
-                    <div class="image-overlay">
-                        <button onclick="deleteImage(${image.id})" class="delete-btn" title="Delete image">
-                            <span>×</span>
-                        </button>
-                        <button onclick="openImageModal(${index})" class="view-btn" title="View full size">
-                            <span>👁</span>
-                        </button>
-                    </div>
+                    <img src="${image.url}" alt="${image.name || 'Gallery image'}" loading="lazy">
                 </div>
-            `).join('') + `
-                <div class="gallery-upload-card" data-aos="fade-up">
-                    <div class="upload-content">
-                        <div class="upload-icon">📷</div>
-                        <h3>Add New Image</h3>
-                        <p>Share your delicious creations!</p>
-                        <button onclick="uploadImage()" class="upload-btn">Upload Image</button>
-                    </div>
-                </div>
-            `;
+            `).join('');
         } else {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder" data-aos="fade-up">
@@ -143,7 +135,6 @@ async function loadGallery() {
                         <div class="placeholder-icon">🧁</div>
                         <h3>Gallery Coming Soon!</h3>
                         <p>Our delicious creations will be showcased here.</p>
-                        <button onclick="uploadImage()" class="upload-btn">Upload First Image</button>
                     </div>
                 </div>
             `;
@@ -156,189 +147,10 @@ async function loadGallery() {
                     <div class="placeholder-icon">⚠️</div>
                     <h3>Unable to Load Gallery</h3>
                     <p>Please check your connection and try again.</p>
-                    <button onclick="loadGallery()" class="upload-btn">Retry</button>
+                    <button onclick="loadGallery()" class="retry-btn">Retry</button>
                 </div>
             </div>
         `;
-    }
-}
-
-// Upload image functionality with backend integration
-function uploadImage() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = false;
-    
-    input.onchange = async function(event) {
-        const file = event.target.files[0];
-        
-        if (file && file.type.startsWith('image/')) {
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File size must be less than 5MB. Please choose a smaller image.');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('image', file);
-            
-            const galleryGrid = document.getElementById('galleryGrid');
-            const uploadIndicator = document.createElement('div');
-            uploadIndicator.className = 'upload-indicator';
-            uploadIndicator.innerHTML = `
-                <div class="upload-progress">
-                    <div class="spinner"></div>
-                    <p>Uploading ${file.name}...</p>
-                </div>
-            `;
-            galleryGrid.appendChild(uploadIndicator);
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/gallery/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    alert('Image uploaded successfully! 🎉');
-                    loadGallery();
-                } else {
-                    const error = await response.json();
-                    alert('Upload failed: ' + (error.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Upload failed. Please check your connection and try again.');
-            } finally {
-                if (uploadIndicator.parentNode) {
-                    uploadIndicator.parentNode.removeChild(uploadIndicator);
-                }
-            }
-        } else {
-            alert('Please select a valid image file (JPG, PNG, GIF, etc.).');
-        }
-    };
-    
-    input.click();
-}
-
-// Delete image functionality
-async function deleteImage(imageId) {
-    if (confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/gallery/${imageId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                alert('Image deleted successfully! 🗑️');
-                loadGallery();
-            } else {
-                const error = await response.json();
-                alert('Failed to delete image: ' + (error.error || 'Unknown error'));
-            }
-        } catch (error) {
-            console.error('Error deleting image:', error);
-            alert('Failed to delete image. Please try again.');
-        }
-    }
-}
-
-// Enhanced image modal with navigation
-function openImageModal(index) {
-    if (!galleryImages || galleryImages.length === 0) return;
-    
-    currentImageIndex = index;
-    const image = galleryImages[index];
-    
-    const modal = document.createElement('div');
-    modal.className = 'image-modal';
-    modal.innerHTML = `
-        <div class="modal-overlay" onclick="closeImageModal()"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>${image.originalName || 'Gallery Image'}</h3>
-                <button class="close-btn" onclick="closeImageModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <button class="nav-btn prev-btn" onclick="navigateImage(-1)" ${galleryImages.length <= 1 ? 'style="display:none"' : ''}>‹</button>
-                <img src="${API_BASE_URL}${image.url}" alt="${image.originalName || 'Gallery image'}" class="modal-image">
-                <button class="nav-btn next-btn" onclick="navigateImage(1)" ${galleryImages.length <= 1 ? 'style="display:none"' : ''}>›</button>
-            </div>
-            <div class="modal-footer">
-                <p>Uploaded on ${new Date(image.uploadedAt).toLocaleDateString()}</p>
-                <button onclick="deleteImage(${image.id})" class="delete-modal-btn">Delete Image</button>
-            </div>
-        </div>
-    `;
-    
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 2000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0,0,0,0.9);
-    `;
-    
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    
-    document.addEventListener('keydown', handleModalKeyboard);
-}
-
-// Navigate between images in modal
-function navigateImage(direction) {
-    currentImageIndex += direction;
-    
-    if (currentImageIndex >= galleryImages.length) {
-        currentImageIndex = 0;
-    } else if (currentImageIndex < 0) {
-        currentImageIndex = galleryImages.length - 1;
-    }
-    
-    const modalImage = document.querySelector('.modal-image');
-    const modalTitle = document.querySelector('.modal-header h3');
-    const modalFooter = document.querySelector('.modal-footer p');
-    const deleteBtn = document.querySelector('.delete-modal-btn');
-    
-    if (modalImage && galleryImages[currentImageIndex]) {
-        const image = galleryImages[currentImageIndex];
-        modalImage.src = `${API_BASE_URL}${image.url}`;
-        modalImage.alt = image.originalName || 'Gallery image';
-        modalTitle.textContent = image.originalName || 'Gallery Image';
-        modalFooter.textContent = `Uploaded on ${new Date(image.uploadedAt).toLocaleDateString()}`;
-        deleteBtn.onclick = () => deleteImage(image.id);
-    }
-}
-
-// Close image modal
-function closeImageModal() {
-    const modal = document.querySelector('.image-modal');
-    if (modal) {
-        modal.remove();
-        document.body.style.overflow = '';
-        document.removeEventListener('keydown', handleModalKeyboard);
-    }
-}
-
-// Handle keyboard navigation in modal
-function handleModalKeyboard(e) {
-    switch(e.key) {
-        case 'Escape':
-            closeImageModal();
-            break;
-        case 'ArrowLeft':
-            if (galleryImages.length > 1) navigateImage(-1);
-            break;
-        case 'ArrowRight':
-            if (galleryImages.length > 1) navigateImage(1);
-            break;
     }
 }
 
@@ -464,29 +276,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if ('ontouchstart' in window) {
         document.body.classList.add('touch-device');
     }
-    
-    if ('IntersectionObserver' in window) {
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-        
-        document.querySelectorAll('[data-aos]').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(el);
-        });
-    }
 });
 
 // Handle page visibility change
@@ -510,10 +299,6 @@ window.addEventListener('offline', function() {
 // Export functions for global access
 window.warmDelights = {
     toggleMenu,
-    uploadImage,
-    deleteImage,
-    openImageModal,
-    closeImageModal,
     loadGallery,
     loadMenu
 };
