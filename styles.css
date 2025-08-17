@@ -39,8 +39,8 @@ header {
 }
 
 .logo {
-    width: 120px;        /* Increased from 80px */
-    height: 120px;       /* Increased from 80px */
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     margin: 0 auto 10px;
     display: block;
@@ -121,24 +121,47 @@ header h1 {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Hero Section */
+/* **UPDATED HERO SECTION WITH DARKER TEXT** */
 .hero {
-    background: linear-gradient(rgba(232, 165, 183, 0.8), rgba(214, 123, 138, 0.8)),
+    background: linear-gradient(rgba(232, 165, 183, 0.3), rgba(214, 123, 138, 0.3)),
                 url('data:image/svg+xml,');
-    padding: 60px 0;
+    padding: 80px 0;
     text-align: center;
-    color: var(--text-dark);
+    position: relative;
+}
+
+/* **ADD DARK OVERLAY FOR BETTER TEXT READABILITY** */
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(74, 46, 56, 0.6); /* Dark overlay */
+    z-index: 1;
+}
+
+.hero .container {
+    position: relative;
+    z-index: 2;
 }
 
 .hero h2 {
     font-family: 'Dancing Script', cursive;
-    font-size: 2.5rem;
+    font-size: 3.5rem;
     margin-bottom: 20px;
+    color: #ffffff; /* **CHANGED TO WHITE** */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* **ADDED TEXT SHADOW** */
+    font-weight: 700;
 }
 
 .hero p {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     margin-bottom: 30px;
+    color: #ffffff; /* **CHANGED TO WHITE** */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* **ADDED TEXT SHADOW** */
+    font-weight: 500;
 }
 
 /* Section Styles */
@@ -475,11 +498,11 @@ footer {
     }
 
     .hero h2 {
-        font-size: 2rem;
+        font-size: 2.5rem; /* **ADJUSTED FOR MOBILE** */
     }
 
     .hero p {
-        font-size: 1rem;
+        font-size: 1.1rem; /* **ADJUSTED FOR MOBILE** */
     }
 
     section {
@@ -510,8 +533,8 @@ footer {
 
 @media (max-width: 480px) {
     .logo {
-        width: 90px;     /* Increased mobile size */
-        height: 90px;    /* Increased mobile size */
+        width: 90px;
+        height: 90px;
     }
 
     header h1 {
@@ -519,7 +542,11 @@ footer {
     }
 
     .hero h2 {
-        font-size: 1.8rem;
+        font-size: 2rem; /* **ADJUSTED FOR MOBILE** */
+    }
+
+    .hero p {
+        font-size: 1rem; /* **ADJUSTED FOR MOBILE** */
     }
 
     section h2 {
