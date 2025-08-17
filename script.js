@@ -302,3 +302,5 @@ window.warmDelights = {
     loadGallery,
     loadMenu
 };
+/ /   U p d a t e d   f o r   R a i l w a y   b a c k e n d   c o n n e c t i o n  
+ 
