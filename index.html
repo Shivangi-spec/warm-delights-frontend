@@ -11,7 +11,7 @@
     <!-- Header -->
     <header>
         <div class="container">
-            <img src="Logo.jpg" alt="Warm Delights Logo" class="logo">
+            <img src="Logo.png" alt="Warm Delights Logo" class="logo">
             <h1>Warm Delights</h1>
             <p class="tagline">Delivering Hugs Through Cakes</p>
             
@@ -30,6 +30,9 @@
                 <a href="#gallery">Gallery</a>
                 <a href="#delivery">Delivery</a>
                 <a href="#contact">Contact</a>
+                <button onclick="toggleCart()" class="cart-btn">
+                    🛒 Cart (<span id="cartCount">0</span>)
+                </button>
             </nav>
             
             <!-- Mobile Navigation -->
@@ -40,6 +43,7 @@
                 <a href="#gallery" onclick="toggleMenu()">Gallery</a>
                 <a href="#delivery" onclick="toggleMenu()">Delivery</a>
                 <a href="#contact" onclick="toggleMenu()">Contact</a>
+                <a href="#" onclick="toggleCart(); toggleMenu();">🛒 Cart (<span id="mobileCartCount">0</span>)</a>
             </nav>
         </div>
     </header>
@@ -78,12 +82,12 @@
         </div>
     </section>
 
-    <!-- Gallery Section (REMOVED UPLOAD BUTTON) -->
+    <!-- Gallery Section -->
     <section id="gallery" class="gallery">
         <div class="container">
             <h2>Our Gallery</h2>
             
-            <!-- Gallery Grid (NO UPLOAD SECTION FOR PUBLIC) -->
+            <!-- Gallery Grid -->
             <div id="galleryGrid" class="gallery-grid">
                 <div class="gallery-placeholder">
                     <h3>🎂 Our Delicious Creations</h3>
@@ -93,13 +97,13 @@
         </div>
     </section>
 
-    <!-- NEW DELIVERY INFO SECTION -->
+    <!-- UPDATED DELIVERY INFO SECTION (NO ICONS) -->
     <section id="delivery" class="delivery-section">
         <div class="container">
             <h2>Delivery Information</h2>
             <div class="delivery-content">
                 <div class="delivery-card">
-                    <h3>🚚 Our Delivery Service</h3>
+                    <h3>Our Delivery Service</h3>
                     <ul class="delivery-list">
                         <li>We offer delivery across the Tricity through multiple parcel options, chosen based on your location.</li>
                         <li>Delivery charges may vary depending on the mode of delivery and your address.</li>
@@ -147,7 +151,7 @@
         </div>
     </section>
 
-    <!-- UPDATED Contact Section -->
+    <!-- UPDATED Contact Section (NO ICONS, BETTER ALIGNMENT) -->
     <section id="contact" class="contact">
         <div class="container">
             <h2>Contact Us</h2>
@@ -155,28 +159,22 @@
                 <div class="contact-info">
                     <h3>Get in Touch</h3>
                     <div class="contact-item">
-                        <span class="contact-icon">📱</span>
                         <strong>Mobile:</strong> <a href="tel:+918847306427">8847306427</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon">💬</span>
                         <strong>WhatsApp:</strong> <a href="https://wa.me/918847306427" target="_blank">8847306427</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon">📧</span>
                         <strong>Email:</strong> <a href="mailto:dayitagoyal10@gmail.com">dayitagoyal10@gmail.com</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon">📍</span>
                         <strong>Address:</strong> #60B, Fio Homes 2, Dhakoli, Zirakpur, 160104
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon">📸</span>
                         <strong>Social:</strong> 
-                        <a href="https://instagram.com/warm.delights" target="_blank">@warm.delights</a>
+                        <a href="https://www.instagram.com/.warmdelights.?igsh=NmRkZGdpcXBrNDZw" target="_blank">@warmdelights</a>
                     </div>
                     <div class="contact-item">
-                        <span class="contact-icon">🕒</span>
                         <strong>Hours:</strong> Mon-Sat: 9AM-7PM, Sun: 10AM-5PM
                     </div>
                 </div>
@@ -194,14 +192,36 @@
         </div>
     </section>
 
+    <!-- SHOPPING CART SIDEBAR -->
+    <div id="cartSidebar" class="cart-sidebar">
+        <div class="cart-header">
+            <h3>🛒 Your Cart</h3>
+            <button onclick="toggleCart()" class="close-cart">✖</button>
+        </div>
+        <div id="cartItems" class="cart-items">
+            <p class="empty-cart">Your cart is empty</p>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <strong>Total: ₹<span id="cartTotal">0</span></strong>
+            </div>
+            <button id="checkoutBtn" class="checkout-btn" onclick="checkout()" disabled>
+                Proceed to Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Cart Overlay -->
+    <div id="cartOverlay" class="cart-overlay" onclick="toggleCart()"></div>
+
     <!-- Footer -->
     <footer>
         <div class="container">
             <p>&copy; 2025 Warm Delights. Made with ❤️ for sweet moments.</p>
             <div class="footer-social">
-                <a href="https://wa.me/918847306427" target="_blank">💬 WhatsApp</a>
-                <a href="https://instagram.com/warm.delights" target="_blank">📸 Instagram</a>
-                <a href="mailto:dayitagoyal10@gmail.com">📧 Email</a>
+                <a href="https://wa.me/918847306427" target="_blank">WhatsApp</a>
+                <a href="https://www.instagram.com/.warmdelights.?igsh=NmRkZGdpcXBrNDZw" target="_blank">Instagram</a>
+                <a href="mailto:dayitagoyal10@gmail.com">Email</a>
             </div>
         </div>
     </footer>

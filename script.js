@@ -1,10 +1,11 @@
-// Warm Delights Frontend JavaScript - NO PUBLIC UPLOAD FUNCTIONALITY
+// Warm Delights Frontend JavaScript - WITH SHOPPING CART
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
 // Global variables
 let galleryImages = [];
 let allMenuItems = [];
 let currentCategory = 'all';
+let cart = [];
 
 // Debug function to check API connectivity
 async function checkAPIConnection() {
@@ -31,6 +32,152 @@ function toggleMenu() {
             toggleBtn.classList.toggle('active');
         }
     }
+}
+
+// Shopping Cart Functions
+function toggleCart() {
+    const cartSidebar = document.getElementById('cartSidebar');
+    const cartOverlay = document.getElementById('cartOverlay');
+    
+    cartSidebar.classList.toggle('active');
+    cartOverlay.classList.toggle('active');
+}
+
+function addToCart(item) {
+    const existingItem = cart.find(cartItem => cartItem.id === item.id);
+    
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        cart.push({ ...item, quantity: 1 });
+    }
+    
+    updateCartUI();
+    updateCartCount();
+    
+    // Show success message
+    showNotification(`${item.name} added to cart! 🛒`);
+}
+
+function removeFromCart(itemId) {
+    cart = cart.filter(item => item.id !== itemId);
+    updateCartUI();
+    updateCartCount();
+}
+
+function updateQuantity(itemId, change) {
+    const item = cart.find(cartItem => cartItem.id === itemId);
+    if (item) {
+        item.quantity += change;
+        if (item.quantity <= 0) {
+            removeFromCart(itemId);
+        } else {
+            updateCartUI();
+            updateCartCount();
+        }
+    }
+}
+
+function updateCartCount() {
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    document.getElementById('cartCount').textContent = totalItems;
+    document.getElementById('mobileCartCount').textContent = totalItems;
+}
+
+function updateCartUI() {
+    const cartItems = document.getElementById('cartItems');
+    const cartTotal = document.getElementById('cartTotal');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    
+    if (cart.length === 0) {
+        cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
+        cartTotal.textContent = '0';
+        checkoutBtn.disabled = true;
+        return;
+    }
+    
+    let total = 0;
+    cartItems.innerHTML = cart.map(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        return `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <h4>${item.name}</h4>
+                    <p>₹${item.price}${item.priceUnit ? '/' + item.priceUnit : ''}</p>
+                    <div class="cart-item-controls">
+                        <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+                        <span>Qty: ${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        <button class="remove-item" onclick="removeFromCart(${item.id})">Remove</button>
+                    </div>
+                </div>
+                <div class="cart-item-total">
+                    <strong>₹${itemTotal}</strong>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    cartTotal.textContent = total;
+    checkoutBtn.disabled = false;
+}
+
+function checkout() {
+    if (cart.length === 0) return;
+    
+    const orderSummary = cart.map(item => 
+        `${item.name} (Qty: ${item.quantity}) - ₹${item.price * item.quantity}`
+    ).join('\n');
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    const whatsappMessage = `Hi! I'd like to place an order from Warm Delights:
+
+${orderSummary}
+
+*Total: ₹${total}*
+
+Please confirm the availability and delivery details.`;
+    
+    const whatsappURL = `https://wa.me/918847306427?text=${encodeURIComponent(whatsappMessage)}`;
+    
+    window.open(whatsappURL, '_blank');
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary-pink);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+        font-weight: 600;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+        style.remove();
+    }, 3000);
 }
 
 // Enhanced load menu with better error handling
@@ -95,7 +242,7 @@ async function loadMenu() {
     }
 }
 
-// Display menu items
+// Display menu items with Add to Cart buttons
 function displayMenuItems(items) {
     const menuGrid = document.getElementById('menuGrid');
     if (!menuGrid) return;
@@ -119,6 +266,9 @@ function displayMenuItems(items) {
                 ${item.eggless ? '<span class="eggless-badge" style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">🥚 Eggless</span>' : ''}
             </div>
             ${item.customizable ? '<p class="customizable" style="margin-top: 8px; color: #e8a5b7; font-weight: bold;">✨ Customizable</p>' : ''}
+            <button class="add-to-cart-btn" onclick="addToCart(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                Add to Cart 🛒
+            </button>
         </div>
     `).join('');
 }
@@ -186,7 +336,7 @@ function filterMenu(category) {
     displayMenuItems(filteredItems);
 }
 
-// Load gallery images (NO UPLOAD FUNCTIONALITY FOR PUBLIC)
+// Load gallery images
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
@@ -222,7 +372,7 @@ async function loadGallery() {
             return;
         }
 
-        // Display uploaded images (NO DELETE BUTTONS FOR PUBLIC)
+        // Display uploaded images
         galleryGrid.innerHTML = images.map(image => `
             <div class="gallery-item">
                 <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
@@ -291,6 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load initial data
     loadMenu();
     loadGallery();
+    updateCartCount();
 });
 
 async function handleContactForm(event) {
