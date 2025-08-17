@@ -381,7 +381,7 @@ section h2 {
     left: 0;
 }
 
-/* UPDATED CONTACT SECTION (NO ICONS, BETTER ALIGNMENT) */
+/* UPDATED CONTACT SECTION (PERFECT ALIGNMENT LIKE YOUR SCREENSHOT) */
 .contact {
     background-color: var(--light-pink);
 }
@@ -413,22 +413,31 @@ section h2 {
 }
 
 .contact-item strong {
-    color: var(--dark-pink);
+    color: var(--primary-pink);
     min-width: 100px;
     text-align: left;
+    font-size: 16px;
 }
 
-.contact-item a {
+.contact-item span {
     color: var(--text-dark);
-    text-decoration: none;
     font-weight: 500;
-    flex: 1;
     text-align: right;
+    flex: 1;
 }
 
-.contact-item a:hover {
+/* Make clickable items */
+.contact-item[data-clickable] {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.contact-item[data-clickable]:hover {
+    background-color: var(--secondary-pink);
+}
+
+.contact-item[data-clickable]:hover span {
     color: var(--primary-pink);
-    text-decoration: underline;
 }
 
 /* Contact Form */
