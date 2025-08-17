@@ -381,7 +381,7 @@ section h2 {
     left: 0;
 }
 
-/* UPDATED CONTACT SECTION (PERFECT ALIGNMENT LIKE YOUR SCREENSHOT) */
+/* UPDATED CONTACT SECTION (NO ICONS, CLEAN LAYOUT) */
 .contact {
     background-color: var(--light-pink);
 }
@@ -398,25 +398,37 @@ section h2 {
     color: var(--primary-pink);
     margin-bottom: 25px;
     font-family: 'Dancing Script', cursive;
-    font-size: 1.8rem;
+    font-size: 2rem;
 }
 
 .contact-item {
     margin-bottom: 15px;
-    padding: 15px 20px;
+    padding: 20px;
     background: var(--white);
-    border-radius: 10px;
+    border-radius: 15px;
     box-shadow: var(--shadow);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all 0.3s ease;
+}
+
+.contact-item[data-clickable] {
+    cursor: pointer;
+}
+
+.contact-item[data-clickable]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    background-color: var(--secondary-pink);
 }
 
 .contact-item strong {
     color: var(--primary-pink);
+    font-size: 16px;
+    font-weight: 600;
     min-width: 100px;
     text-align: left;
-    font-size: 16px;
 }
 
 .contact-item span {
@@ -424,20 +436,6 @@ section h2 {
     font-weight: 500;
     text-align: right;
     flex: 1;
-}
-
-/* Make clickable items */
-.contact-item[data-clickable] {
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.contact-item[data-clickable]:hover {
-    background-color: var(--secondary-pink);
-}
-
-.contact-item[data-clickable]:hover span {
-    color: var(--primary-pink);
 }
 
 /* Contact Form */
@@ -486,6 +484,29 @@ section h2 {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .contact-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    
+    .contact-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .contact-item strong {
+        text-align: center;
+        min-width: auto;
+    }
+    
+    .contact-item span {
+        text-align: center;
+    }
 }
 
 /* SHOPPING CART STYLES */
