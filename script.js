@@ -1,4 +1,4 @@
-// Warm Delights Frontend JavaScript - Updated with Gallery Functionality
+// Warm Delights Frontend JavaScript - Updated with Menu Categories
 
 // API Base URL - Update this with your deployed backend URL
 const API_BASE_URL = 'https://your-app.up.railway.app/api'; // Replace with your actual Railway URL
@@ -6,6 +6,8 @@ const API_BASE_URL = 'https://your-app.up.railway.app/api'; // Replace with your
 // Global variables
 let galleryImages = [];
 let currentImageIndex = 0;
+let allMenuItems = [];
+let currentCategory = 'all';
 
 // Mobile menu toggle
 function toggleMenu() {
@@ -15,14 +17,13 @@ function toggleMenu() {
     if (mobileNav) {
         mobileNav.classList.toggle('active');
         
-        // Animate hamburger menu
         if (toggleBtn) {
             toggleBtn.classList.toggle('active');
         }
     }
 }
 
-// Load menu items from backend
+// Load menu items from backend with category filtering
 async function loadMenu() {
     const menuGrid = document.getElementById('menuGrid');
     
@@ -32,32 +33,69 @@ async function loadMenu() {
         showLoading(menuGrid);
         
         const response = await fetch(`${API_BASE_URL}/menu`);
-        const menuItems = await response.json();
+        allMenuItems = await response.json();
         
-        if (menuItems && menuItems.length > 0) {
-            menuGrid.innerHTML = menuItems.map(item => `
-                <div class="menu-item" data-aos="fade-up">
-                    <div class="menu-image">
-                        <img src="${API_BASE_URL}${item.image}" alt="${item.name}" loading="lazy">
-                    </div>
-                    <div class="menu-content">
-                        <h3>${item.name}</h3>
-                        <p class="category">${item.category}</p>
-                        <p class="description">${item.description}</p>
-                        <div class="menu-footer">
-                            <p class="price">₹${item.price}</p>
-                            ${item.customizable ? '<span class="customizable">📝 Customizable</span>' : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            menuGrid.innerHTML = '<div class="loading">Menu items coming soon!</div>';
-        }
+        displayMenuItems(allMenuItems);
+        setupCategoryFilters();
+        
     } catch (error) {
         console.error('Error loading menu:', error);
         menuGrid.innerHTML = '<div class="loading">Unable to load menu. Please try again later.</div>';
     }
+}
+
+// Display menu items based on category
+function displayMenuItems(items) {
+    const menuGrid = document.getElementById('menuGrid');
+    
+    if (items && items.length > 0) {
+        menuGrid.innerHTML = items.map(item => `
+            <div class="menu-item" data-category="${item.category}" data-aos="fade-up">
+                <div class="menu-image">
+                    <img src="${API_BASE_URL}${item.image}" alt="${item.name}" loading="lazy">
+                </div>
+                <div class="menu-content">
+                    <h3>${item.name}</h3>
+                    <p class="category">${item.category}</p>
+                    <p class="description">${item.description}</p>
+                    <div class="menu-footer">
+                        <p class="price">₹${item.price.toFixed(2)}${item.priceUnit ? '/' + item.priceUnit : ''}</p>
+                        <div class="menu-badges">
+                            ${item.eggless ? '<span class="badge eggless">🥚 Eggless</span>' : ''}
+                            ${item.customizable ? '<span class="badge customizable">📝 Customizable</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        menuGrid.innerHTML = '<div class="loading">Menu items coming soon!</div>';
+    }
+}
+
+// Setup category filter buttons
+function setupCategoryFilters() {
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.dataset.category;
+            
+            // Update active button
+            categoryBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Filter items
+            if (category === 'all') {
+                displayMenuItems(allMenuItems);
+            } else {
+                const filteredItems = allMenuItems.filter(item => item.category === category);
+                displayMenuItems(filteredItems);
+            }
+            
+            currentCategory = category;
+        });
+    });
 }
 
 // Updated gallery functionality with backend integration
@@ -136,7 +174,6 @@ function uploadImage() {
         const file = event.target.files[0];
         
         if (file && file.type.startsWith('image/')) {
-            // Validate file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
                 alert('File size must be less than 5MB. Please choose a smaller image.');
                 return;
@@ -145,7 +182,6 @@ function uploadImage() {
             const formData = new FormData();
             formData.append('image', file);
             
-            // Show upload progress
             const galleryGrid = document.getElementById('galleryGrid');
             const uploadIndicator = document.createElement('div');
             uploadIndicator.className = 'upload-indicator';
@@ -166,7 +202,7 @@ function uploadImage() {
                 if (response.ok) {
                     const result = await response.json();
                     alert('Image uploaded successfully! 🎉');
-                    loadGallery(); // Reload gallery to show new image
+                    loadGallery();
                 } else {
                     const error = await response.json();
                     alert('Upload failed: ' + (error.error || 'Unknown error'));
@@ -175,7 +211,6 @@ function uploadImage() {
                 console.error('Error uploading image:', error);
                 alert('Upload failed. Please check your connection and try again.');
             } finally {
-                // Remove upload indicator
                 if (uploadIndicator.parentNode) {
                     uploadIndicator.parentNode.removeChild(uploadIndicator);
                 }
@@ -198,7 +233,7 @@ async function deleteImage(imageId) {
             
             if (response.ok) {
                 alert('Image deleted successfully! 🗑️');
-                loadGallery(); // Reload gallery
+                loadGallery();
             } else {
                 const error = await response.json();
                 alert('Failed to delete image: ' + (error.error || 'Unknown error'));
@@ -238,7 +273,6 @@ function openImageModal(index) {
         </div>
     `;
     
-    // Add modal styles
     modal.style.cssText = `
         position: fixed;
         top: 0;
@@ -249,12 +283,12 @@ function openImageModal(index) {
         display: flex;
         justify-content: center;
         align-items: center;
+        background: rgba(0,0,0,0.9);
     `;
     
     document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    document.body.style.overflow = 'hidden';
     
-    // Add keyboard navigation
     document.addEventListener('keydown', handleModalKeyboard);
 }
 
@@ -288,7 +322,7 @@ function closeImageModal() {
     const modal = document.querySelector('.image-modal');
     if (modal) {
         modal.remove();
-        document.body.style.overflow = ''; // Restore scrolling
+        document.body.style.overflow = '';
         document.removeEventListener('keydown', handleModalKeyboard);
     }
 }
@@ -373,7 +407,6 @@ function initSmoothScrolling() {
                     block: 'start'
                 });
                 
-                // Close mobile menu if open
                 const mobileNav = document.getElementById('mobileNav');
                 if (mobileNav && mobileNav.classList.contains('active')) {
                     toggleMenu();
@@ -390,7 +423,6 @@ function handleResponsiveImages() {
         img.style.maxWidth = '100%';
         img.style.height = 'auto';
         
-        // Add loading placeholder
         img.addEventListener('load', function() {
             this.style.opacity = '1';
         });
@@ -418,25 +450,21 @@ function initMobileMenuHandling() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Warm Delights website loaded! 🧁');
     
-    // Initialize components
     loadMenu();
     loadGallery();
     initSmoothScrolling();
     handleResponsiveImages();
     initMobileMenuHandling();
     
-    // Setup contact form
     const contactForm = document.getElementById('contactForm');
     if (contactForm) {
         contactForm.addEventListener('submit', handleContactForm);
     }
     
-    // Add touch support for mobile devices
     if ('ontouchstart' in window) {
         document.body.classList.add('touch-device');
     }
     
-    // Add intersection observer for animations (if needed)
     if ('IntersectionObserver' in window) {
         const observerOptions = {
             threshold: 0.1,
@@ -452,7 +480,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }, observerOptions);
         
-        // Observe elements with animation classes
         document.querySelectorAll('[data-aos]').forEach(el => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(20px)';
@@ -465,7 +492,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Handle page visibility change
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
-        // Refresh gallery when page becomes visible (in case images were added from another device)
         loadGallery();
     }
 });
@@ -481,7 +507,7 @@ window.addEventListener('offline', function() {
     console.log('Connection lost');
 });
 
-// Export functions for global access (if needed)
+// Export functions for global access
 window.warmDelights = {
     toggleMenu,
     uploadImage,
