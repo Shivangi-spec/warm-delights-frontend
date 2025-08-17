@@ -232,6 +232,40 @@
         </div>
     </footer>
 
+    <!-- Add this before closing </body> tag in your index.html -->
+
+    <!-- CUSTOM CHATBOT -->
+    <div id="chatbot-container" class="chatbot-container">
+        <div id="chatbot-toggle" class="chatbot-toggle" onclick="toggleChatbot()">
+            <span class="chatbot-icon">💬</span>
+            <span class="chatbot-text">Chat with us!</span>
+        </div>
+        
+        <div id="chatbot-window" class="chatbot-window">
+            <div class="chatbot-header">
+                <h4>🧁 Warm Delights Assistant</h4>
+                <button onclick="toggleChatbot()" class="chatbot-close">✖</button>
+            </div>
+            
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="message bot-message">
+                    <p>Hi! I'm here to help you with any questions about our delicious treats! 🎂</p>
+                    <div class="quick-buttons">
+                        <button onclick="handleQuickResponse('menu')">View Menu</button>
+                        <button onclick="handleQuickResponse('hours')">Store Hours</button>
+                        <button onclick="handleQuickResponse('order')">Place Order</button>
+                        <button onclick="handleQuickResponse('delivery')">Delivery Info</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbot-input">
+                <input type="text" id="chatbot-input-field" placeholder="Ask me anything..." onkeypress="handleChatbotEnter(event)">
+                <button onclick="sendChatbotMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

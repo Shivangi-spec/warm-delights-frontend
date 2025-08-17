@@ -556,3 +556,123 @@ window.addEventListener('load', function() {
         }
     });
 });
+
+// CUSTOM CHATBOT FUNCTIONALITY
+let chatbotOpen = false;
+
+function toggleChatbot() {
+    const chatbotWindow = document.getElementById('chatbot-window');
+    const chatbotToggle = document.getElementById('chatbot-toggle');
+    
+    chatbotOpen = !chatbotOpen;
+    
+    if (chatbotOpen) {
+        chatbotWindow.classList.add('active');
+        chatbotToggle.style.display = 'none';
+    } else {
+        chatbotWindow.classList.remove('active');
+        chatbotToggle.style.display = 'flex';
+    }
+}
+
+function handleQuickResponse(type) {
+    const responses = {
+        menu: "Here's our menu! We have delicious eggless cakes, cookies, and cupcakes. Would you like me to show you our popular items?",
+        hours: "We're open Mon-Sat: 9AM-7PM and Sun: 10AM-5PM. We're located at #60B, Fio Homes 2, Dhakoli, Zirakpur, 160104. 🕒",
+        order: "To place an order, you can use our shopping cart on the website or contact us directly via WhatsApp at +918847306427. What would you like to order? 🛒",
+        delivery: "We offer delivery across the Tricity! Delivery charges vary by location. Same-day delivery is available under certain conditions. We recommend ordering 2-3 days in advance for the best experience. 🚚"
+    };
+    
+    addMessage(responses[type], 'bot');
+    
+    if (type === 'menu') {
+        setTimeout(() => {
+            addMessage("Our most popular items are:", 'bot');
+            addMessage("🧁 Chocolate Cake - ₹500\n🧁 Vanilla Cake - ₹450\n🧁 Chocolate Cupcakes - ₹40/pc\n\nWould you like to add any to your cart?", 'bot');
+        }, 1000);
+    }
+    
+    if (type === 'order') {
+        setTimeout(() => {
+            const whatsappBtn = document.createElement('button');
+            whatsappBtn.textContent = '💬 Order via WhatsApp';
+            whatsappBtn.style.cssText = 'background: #25d366; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; margin-top: 10px; width: 100%;';
+            whatsappBtn.onclick = () => window.open('https://wa.me/918847306427?text=Hi! I\'d like to place an order from Warm Delights.', '_blank');
+            
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const lastMessage = messagesContainer.lastElementChild;
+            lastMessage.appendChild(whatsappBtn);
+        }, 500);
+    }
+}
+
+function handleChatbotEnter(event) {
+    if (event.key === 'Enter') {
+        sendChatbotMessage();
+    }
+}
+
+function sendChatbotMessage() {
+    const input = document.getElementById('chatbot-input-field');
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // Simple response logic
+    setTimeout(() => {
+        const response = generateChatbotResponse(message.toLowerCase());
+        addMessage(response, 'bot');
+    }, 1000);
+}
+
+function generateChatbotResponse(message) {
+    if (message.includes('price') || message.includes('cost') || message.includes('much')) {
+        return "Our prices range from ₹30-₹550! Cookies start at ₹30/pc, Cupcakes at ₹35/pc, and Cakes from ₹450. What specific item are you interested in? 💰";
+    }
+    
+    if (message.includes('cake')) {
+        return "We have amazing eggless cakes! 🎂\n• Vanilla Cake - ₹450\n• Chocolate Cake - ₹500\n• Strawberry Cake - ₹550\n• Butterscotch Cake - ₹550\n\nAll are customizable! Which one interests you?";
+    }
+    
+    if (message.includes('cookie')) {
+        return "Our fresh cookies are a hit! 🍪\n• Peanut Butter - ₹50/pc\n• Chocolate - ₹40/pc\n• Almond - ₹45/pc\n• Butter Cream - ₹30/pc\n\nAll completely eggless!";
+    }
+    
+    if (message.includes('cupcake')) {
+        return "Try our delicious cupcakes! 🧁\n• Chocolate Cupcakes - ₹40/pc\n• Banana Muffins - ₹35/pc\n• Cheesecake Cupcakes - ₹55/pc\n\nPerfect for any occasion!";
+    }
+    
+    if (message.includes('delivery')) {
+        return "We deliver across the Tricity! 🚚 Charges vary by location. Same-day delivery available. For best experience, order 2-3 days in advance. What's your location?";
+    }
+    
+    if (message.includes('contact') || message.includes('phone') || message.includes('whatsapp')) {
+        return "You can reach us at:\n📱 Mobile: +918847306427\n💬 WhatsApp: +918847306427\n📧 Email: dayitagoyal10@gmail.com\n📸 Instagram: @warmdelights";
+    }
+    
+    if (message.includes('custom')) {
+        return "Yes! We love custom orders! 🎨 We can personalize cakes with custom flavors, designs, and decorations. Contact us on WhatsApp +918847306427 to discuss your special requirements!";
+    }
+    
+    if (message.includes('eggless')) {
+        return "All our products are 100% eggless! 🥚❌ Perfect for vegetarians and those with egg allergies. No compromise on taste or texture!";
+    }
+    
+    return "Thanks for your message! For specific questions, please contact us on WhatsApp +918847306427 or check our menu above. How else can I help you today? 😊";
+}
+
+function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    
+    const messageText = document.createElement('p');
+    messageText.textContent = text;
+    messageDiv.appendChild(messageText);
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
