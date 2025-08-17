@@ -134,7 +134,7 @@ header h1 {
     font-family: 'Dancing Script', cursive;
     font-size: 3.5rem;
     margin-bottom: 20px;
-    color: #1a0f0865; /* **VERY DARK BROWN/ALMOST BLACK** */
+    color: #1a0f08ce; /* **VERY DARK BROWN/ALMOST BLACK** */
     text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.9); /* **WHITE TEXT SHADOW FOR CONTRAST** */
     font-weight: 700;
 }
@@ -142,7 +142,7 @@ header h1 {
 .hero p {
     font-size: 1.4rem;
     margin-bottom: 30px;
-    color: #2c181079; /* **DARK BROWN** */
+    color: #2c1810cc; /* **DARK BROWN** */
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8); /* **WHITE TEXT SHADOW** */
     font-weight: 600;
 }
