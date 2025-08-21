@@ -1,19 +1,19 @@
 {
-  "name": "frontend",
+  "name": "warm-delights-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Warm Delights bakery website with admin system",
+  "description": "Frontend for Warm Delights Bakery website with admin system",
   "main": "index.html",
   "scripts": {
-    "start": "live-server .",
-    "build": "mkdir -p build && cp -r public/* build/ && cp -r src/* build/",
+    "start": "live-server ./public",
+    "build": "mkdir -p build && cp -R public/* build/ && cp -R src/* build/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Shivangi-spec/warm-delights-frontend.git"
   },
-  "keywords": ["bakery", "admin", "frontend", "warm-delights"],
-  "author": "Warm Delights",
+  "keywords": ["bakery", "frontend", "admin", "warm-delights"],
+  "author": "Shivangi",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
