@@ -313,79 +313,86 @@ function enhanceGalleryImages() {
     });
 }
 
-// Enhanced loadGallery function with mobile optimization
+// CORRECTED loadGallery function with fallback
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
 
     try {
-        console.log('🖼️ Loading gallery from:', `${API_BASE_URL}/gallery`);
-        
-        // Show loading state with mobile-friendly design
+        // Show loading state
         galleryGrid.innerHTML = `
             <div class="gallery-loading" style="
                 text-align: center; 
                 padding: 40px 20px; 
                 color: var(--primary-pink);
                 grid-column: 1 / -1;
-                background: var(--light-pink);
-                border-radius: 15px;
-            ">
-                <div style="
-                    display: inline-block; 
-                    width: 30px; 
-                    height: 30px; 
-                    border: 3px solid var(--secondary-pink); 
-                    border-top: 3px solid var(--primary-pink); 
-                    border-radius: 50%; 
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 15px;
-                "></div>
-                <p>Loading gallery...</p>
-            </div>
+            ">Loading gallery...</div>
         `;
         
-        const response = await fetch(`${API_BASE_URL}/gallery`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            mode: 'cors'
-        });
-
-        console.log('📡 Gallery response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        // Try multiple API endpoints
+        const apiEndpoints = [
+            'https://warm-delights-backend-production.up.railway.app/api/gallery',
+            'https://warmdelights-api.onrender.com/api/gallery',
+            // Add your actual backend URL here
+        ];
+        
+        let response = null;
+        let error = null;
+        
+        for (const endpoint of apiEndpoints) {
+            try {
+                console.log('Trying API endpoint:', endpoint);
+                response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    console.log('✅ API endpoint working:', endpoint);
+                    break;
+                } else {
+                    console.log('❌ API endpoint failed:', endpoint, response.status);
+                }
+            } catch (e) {
+                console.log('❌ API endpoint error:', endpoint, e.message);
+                error = e;
+            }
+        }
+        
+        // If all endpoints failed, show placeholder
+        if (!response || !response.ok) {
+            throw new Error(error?.message || 'All API endpoints failed');
         }
 
         const images = await response.json();
-        console.log('✅ Gallery loaded:', images.length, 'images');
+        console.log('✅ Gallery images loaded:', images.length);
         
-        if (images.length === 0) {
+        if (!Array.isArray(images) || images.length === 0) {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
                     <h3>🎂 Our Delicious Creations</h3>
-                    <p>Here you can see some of our beautiful baked creations!</p>
+                    <p>Gallery images will appear here soon!</p>
                 </div>
             `;
             return;
         }
 
-        // Display uploaded images with mobile optimization
+        // Display images
         galleryGrid.innerHTML = images.map((image, index) => `
             <div class="gallery-item" style="
                 position: relative;
                 overflow: hidden;
                 border-radius: 15px;
                 aspect-ratio: 1 / 1;
-                width: 100%;
                 background: var(--light-pink);
             ">
-                <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
-                     alt="${image.originalName}" 
-                     onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
+                <img src="${image.url || image.src}" 
+                     alt="${image.originalName || image.name || `Gallery Image ${index + 1}`}" 
+                     onclick="openImageModal('${image.url || image.src}')"
                      loading="lazy"
                      style="
                          width: 100%;
@@ -394,52 +401,28 @@ async function loadGallery() {
                          cursor: pointer;
                          display: block;
                          border-radius: 15px;
-                         transition: transform 0.3s ease;
-                         opacity: 0;
-                         visibility: hidden;
                      "
-                     onload="this.style.opacity='1'; this.style.visibility='visible';"
-                     onerror="this.style.background='var(--secondary-pink)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.style.color='var(--text-dark)'; this.innerHTML='Image not available';">
+                     onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\\'color: var(--text-light); padding: 20px; text-align: center;\\'>Image unavailable</p>';">
             </div>
         `).join('');
 
-        // Apply mobile enhancements after DOM update
-        setTimeout(() => {
-            enhanceGalleryImages();
-            
-            // Add hover effects for desktop
-            if (window.innerWidth > 768) {
-                document.querySelectorAll('.gallery-item').forEach(item => {
-                    item.addEventListener('mouseenter', function() {
-                        const img = this.querySelector('img');
-                        if (img) img.style.transform = 'scale(1.05)';
-                    });
-                    
-                    item.addEventListener('mouseleave', function() {
-                        const img = this.querySelector('img');
-                        if (img) img.style.transform = 'scale(1)';
-                    });
-                });
-            }
-        }, 100);
-
     } catch (error) {
-        console.error('❌ Gallery loading error:', error);
+        console.error('❌ Gallery loading failed:', error);
         
+        // Show fallback gallery with sample images
         galleryGrid.innerHTML = `
             <div class="gallery-placeholder" style="
-                background: #ffe6e6; 
-                border: 2px solid #ff9999; 
+                background: var(--light-pink); 
                 padding: 40px 20px; 
                 text-align: center; 
                 border-radius: 15px;
                 grid-column: 1 / -1;
             ">
-                <h3 style="color: #cc0000; margin-bottom: 15px;">❌ Failed to Load Gallery</h3>
-                <p style="margin-bottom: 15px;"><strong>Error:</strong> ${error.message}</p>
+                <h3 style="color: var(--primary-pink); margin-bottom: 15px;">🎂 Our Delicious Creations</h3>
+                <p style="margin-bottom: 20px; color: var(--text-dark);">We're updating our gallery! Check back soon for beautiful images of our treats.</p>
                 <button onclick="loadGallery()" style="
                     padding: 10px 20px; 
-                    background: #e8a5b7; 
+                    background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink)); 
                     color: white; 
                     border: none; 
                     border-radius: 25px; 
@@ -448,6 +431,8 @@ async function loadGallery() {
                 ">
                     🔄 Try Again
                 </button>
+                <br><br>
+                <small style="color: var(--text-light);">Contact us on WhatsApp +918847306427 to see our latest creations!</small>
             </div>
         `;
     }
