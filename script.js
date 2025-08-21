@@ -1,4 +1,4 @@
-// Warm Delights Frontend JavaScript - WITH MINIMUM QUANTITIES
+// Warm Delights Frontend JavaScript - WITH MINIMUM QUANTITIES AND MOBILE GALLERY FIX
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
 // Global variables
@@ -283,13 +283,67 @@ function filterMenu(category) {
     displayMenuItems(filteredItems);
 }
 
-// Load gallery images
+// 🔧 MOBILE GALLERY FIX - Enhanced Gallery Functions
+function enhanceGalleryImages() {
+    const galleryImages = document.querySelectorAll('.gallery-item img');
+    
+    galleryImages.forEach(img => {
+        // Force proper responsive styles
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.display = 'block';
+        img.style.borderRadius = '15px';
+        
+        // Ensure image loads properly
+        img.onload = function() {
+            this.style.opacity = '1';
+            this.style.visibility = 'visible';
+        };
+        
+        // Handle image load errors
+        img.onerror = function() {
+            this.style.background = 'var(--secondary-pink)';
+            this.style.display = 'flex';
+            this.style.alignItems = 'center';
+            this.style.justifyContent = 'center';
+            this.style.color = 'var(--text-dark)';
+            this.innerHTML = 'Image not available';
+        };
+    });
+}
+
+// Enhanced loadGallery function with mobile optimization
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
 
     try {
         console.log('🖼️ Loading gallery from:', `${API_BASE_URL}/gallery`);
+        
+        // Show loading state with mobile-friendly design
+        galleryGrid.innerHTML = `
+            <div class="gallery-loading" style="
+                text-align: center; 
+                padding: 40px 20px; 
+                color: var(--primary-pink);
+                grid-column: 1 / -1;
+                background: var(--light-pink);
+                border-radius: 15px;
+            ">
+                <div style="
+                    display: inline-block; 
+                    width: 30px; 
+                    height: 30px; 
+                    border: 3px solid var(--secondary-pink); 
+                    border-top: 3px solid var(--primary-pink); 
+                    border-radius: 50%; 
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 15px;
+                "></div>
+                <p>Loading gallery...</p>
+            </div>
+        `;
         
         const response = await fetch(`${API_BASE_URL}/gallery`, {
             method: 'GET',
@@ -319,15 +373,55 @@ async function loadGallery() {
             return;
         }
 
-        // Display uploaded images
-        galleryGrid.innerHTML = images.map(image => `
-            <div class="gallery-item">
+        // Display uploaded images with mobile optimization
+        galleryGrid.innerHTML = images.map((image, index) => `
+            <div class="gallery-item" style="
+                position: relative;
+                overflow: hidden;
+                border-radius: 15px;
+                aspect-ratio: 1 / 1;
+                width: 100%;
+                background: var(--light-pink);
+            ">
                 <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
                      alt="${image.originalName}" 
                      onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
-                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;">
+                     loading="lazy"
+                     style="
+                         width: 100%;
+                         height: 100%;
+                         object-fit: cover;
+                         cursor: pointer;
+                         display: block;
+                         border-radius: 15px;
+                         transition: transform 0.3s ease;
+                         opacity: 0;
+                         visibility: hidden;
+                     "
+                     onload="this.style.opacity='1'; this.style.visibility='visible';"
+                     onerror="this.style.background='var(--secondary-pink)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.style.color='var(--text-dark)'; this.innerHTML='Image not available';">
             </div>
         `).join('');
+
+        // Apply mobile enhancements after DOM update
+        setTimeout(() => {
+            enhanceGalleryImages();
+            
+            // Add hover effects for desktop
+            if (window.innerWidth > 768) {
+                document.querySelectorAll('.gallery-item').forEach(item => {
+                    item.addEventListener('mouseenter', function() {
+                        const img = this.querySelector('img');
+                        if (img) img.style.transform = 'scale(1.05)';
+                    });
+                    
+                    item.addEventListener('mouseleave', function() {
+                        const img = this.querySelector('img');
+                        if (img) img.style.transform = 'scale(1)';
+                    });
+                });
+            }
+        }, 100);
 
     } catch (error) {
         console.error('❌ Gallery loading error:', error);
@@ -336,20 +430,21 @@ async function loadGallery() {
             <div class="gallery-placeholder" style="
                 background: #ffe6e6; 
                 border: 2px solid #ff9999; 
-                padding: 40px; 
+                padding: 40px 20px; 
                 text-align: center; 
-                border-radius: 10px;
+                border-radius: 15px;
+                grid-column: 1 / -1;
             ">
-                <h3 style="color: #cc0000;">❌ Failed to Load Gallery</h3>
-                <p><strong>Error:</strong> ${error.message}</p>
+                <h3 style="color: #cc0000; margin-bottom: 15px;">❌ Failed to Load Gallery</h3>
+                <p style="margin-bottom: 15px;"><strong>Error:</strong> ${error.message}</p>
                 <button onclick="loadGallery()" style="
-                    margin-top: 15px; 
-                    padding: 8px 16px; 
+                    padding: 10px 20px; 
                     background: #e8a5b7; 
                     color: white; 
                     border: none; 
-                    border-radius: 5px; 
+                    border-radius: 25px; 
                     cursor: pointer;
+                    font-weight: 600;
                 ">
                     🔄 Try Again
                 </button>
@@ -362,19 +457,40 @@ async function loadGallery() {
 function openImageModal(imageUrl) {
     const modal = document.createElement('div');
     modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); display: flex; justify-content: center;
-        align-items: center; z-index: 10000; cursor: pointer;
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%;
+        background: rgba(0,0,0,0.8); 
+        display: flex; 
+        justify-content: center;
+        align-items: center; 
+        z-index: 10000; 
+        cursor: pointer;
+        padding: 20px;
     `;
     
     const img = document.createElement('img');
     img.src = imageUrl;
-    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+    img.style.cssText = `
+        max-width: 90%; 
+        max-height: 90%; 
+        border-radius: 10px;
+        object-fit: contain;
+    `;
     
     modal.appendChild(img);
     document.body.appendChild(modal);
     
     modal.onclick = () => document.body.removeChild(modal);
+    
+    // Handle escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.body.contains(modal)) {
+            document.body.removeChild(modal);
+        }
+    });
 }
 
 // Custom order form handling
@@ -400,6 +516,14 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTextMenu();
     loadGallery();
     updateCartCount();
+    
+    // Mobile gallery optimization on window resize
+    window.addEventListener('resize', function() {
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            enhanceGalleryImages();
+        }, 250);
+    });
 });
 
 function validateFileSize(event) {
@@ -534,7 +658,7 @@ function toggleChatbot() {
 function handleQuickResponse(type) {
     const responses = {
         menu: "Here's our menu categories! What would you like to explore? 🍰",
-        hours: "We're open Mon-Sat: 9AM-7PM and Sun: 10AM-5PM. We're located at #60B, Fio Homes 2, Dhakoli, Zirakpur, 160104. 🕒",
+        hours: "We're open Mon-Sat: 9AM-7PM and Sun: 10AM-5PM.",
         order: "To place an order, you can use our shopping cart on the website or contact us directly via WhatsApp at +918847306427. What would you like to order? 🛒",
         delivery: "We offer delivery across the Tricity! Delivery charges vary by location. Same-day delivery is available under certain conditions. We recommend ordering 2-3 days in advance for the best experience. 🚚"
     };

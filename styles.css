@@ -142,7 +142,7 @@ header h1 {
 
 /* Hero Section with Dark Text */
 .hero {
-    background: linear-gradient(rgb(255, 255, 255), rgb(225, 225, 225)),
+    background: linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)),
                 url('data:image/svg+xml,');
     padding: 80px 0;
     text-align: center;
