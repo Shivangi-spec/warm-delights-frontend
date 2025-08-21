@@ -1003,6 +1003,35 @@ function createResponsiveImageElement(imageName) {
     return galleryItem;
 }
 
+function displayImages() {
+    fetch('/api/images')
+        .then(response => response.json())
+        .then(images => {
+            const gallery = document.getElementById('galleryGrid') || document.getElementById('gallery');
+            if (!gallery) return;
+            
+            gallery.innerHTML = '';
+            
+            if (images.length === 0) {
+                gallery.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <h3>🎂 Our Delicious Creations</h3>
+                        <p>Upload images in the admin dashboard to showcase your cakes!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            images.forEach(image => {
+                const imageItem = createResponsiveImageElement(image);
+                gallery.appendChild(imageItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading images:', error);
+        });
+}
+
 // Image optimization function
 function optimizeImageDisplay() {
     const images = document.querySelectorAll('.responsive-img');

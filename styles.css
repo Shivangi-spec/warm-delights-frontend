@@ -1377,31 +1377,39 @@ footer {
 }
 
 
-/* ===== RESPONSIVE IMAGES SECTION ===== */
-.responsive-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
+/* ===== RESPONSIVE GALLERY FIXES ===== */
 
-.gallery {
+/* Main gallery container */
+.gallery, #gallery, #galleryGrid, .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
     padding: 20px;
+    margin: 0 auto;
+    max-width: 1200px;
 }
 
+/* Gallery items */
 .gallery-item {
     position: relative;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 15px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    background: white;
 }
 
-.gallery-item img {
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive images */
+.gallery img, .gallery-item img, .responsive-img {
     width: 100%;
     height: 250px;
     object-fit: cover;
+    display: block;
     transition: transform 0.3s ease;
 }
 
@@ -1409,27 +1417,34 @@ footer {
     transform: scale(1.05);
 }
 
-/* Mobile responsiveness */
-@media only screen and (max-width: 768px) {
-    .gallery {
+/* Mobile responsive breakpoints */
+@media (max-width: 768px) {
+    .gallery, #gallery, #galleryGrid, .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         gap: 15px;
         padding: 15px;
     }
     
-    .gallery-item img {
+    .gallery img, .gallery-item img {
         height: 200px;
     }
 }
 
-@media only screen and (max-width: 480px) {
-    .gallery {
+@media (max-width: 480px) {
+    .gallery, #gallery, #galleryGrid, .gallery-grid {
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 10px;
     }
     
-    .gallery-item img {
+    .gallery img, .gallery-item img {
         height: 180px;
     }
+}
+
+/* Remove any conflicting styles */
+.gallery, #gallery, #galleryGrid, .gallery-grid {
+    /* Remove any float, flex, or other conflicting display properties */
+    float: none !important;
+    display: grid !important;
 }
