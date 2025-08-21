@@ -236,36 +236,48 @@ async function uploadImages() {
     }
 }
 
-// ✅ Load gallery from backend only
+// Load admin gallery (fetch from backend + show local if fallback)
 async function loadAdminGallery() {
     const galleryContainer = document.getElementById('adminGallery');
     if (!galleryContainer) return;
 
     try {
-        const token = localStorage.getItem('adminSession');
-        const response = await fetch(`${API_BASE_URL}/admin/gallery`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const images = await response.json();
+        const response = await fetch(`${API_BASE_URL}/gallery`);
+        if (response.ok) {
+            const images = await response.json();
 
-        if (!images || images.length === 0) {
-            galleryContainer.innerHTML = '<p style="text-align: center; color: #6b4e57;">No images uploaded yet</p>';
-            return;
-        }
+            if (images.length === 0) {
+                galleryContainer.innerHTML = '<p style="text-align: center; color: #6b4e57;">No images uploaded yet</p>';
+                return;
+            }
 
-        galleryContainer.innerHTML = images.map(img => `
-            <div class="admin-gallery-item">
-                <img src="${API_BASE_URL.replace('/api','')}/uploads/${img.filename}" alt="${img.name}">
-                <button class="delete-btn" onclick="deleteImage('${img.filename}')">✖</button>
-                <div class="image-info">
-                    <p>${img.name}</p>
-                    <p>${new Date(img.uploadDate).toLocaleString()}</p>
+            galleryContainer.innerHTML = images.map(image => `
+                <div class="admin-gallery-item">
+                    <img src="${image.url}" alt="${image.name}">
+                    <button class="delete-btn" onclick="deleteImage('${image.id}')" title="Delete image">✕</button>
+                    <div class="image-info">
+                        <p class="image-name">${image.name}</p>
+                        <div class="image-details">
+                            <span class="image-date">${new Date(image.uploadDate).toLocaleDateString()}</span>
+                            <span class="image-size">${(image.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <span class="image-views">Backend ✓</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+
+            // Update analytics
+            const imageUploadsElement = document.getElementById('imageUploads');
+            if (imageUploadsElement) {
+                imageUploadsElement.textContent = images.length;
+            }
+        } else {
+            console.error('❌ Failed to fetch gallery:', await response.text());
+        }
     } catch (error) {
-        console.error('❌ Failed to load gallery:', error);
-        galleryContainer.innerHTML = '<p>Error loading gallery</p>';
+        console.error('❌ Error loading gallery:', error);
     }
 }
 
