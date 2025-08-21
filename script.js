@@ -27,7 +27,7 @@ const menuData = [
     { id: 11, name: 'Cheesecake Cupcakes', category: 'cupcakes', price: 55, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' }
 ];
 
-// ANALYTICS TRACKING FUNCTIONS
+/* --------------------  ANALYTICS TRACKING  -------------------- */
 function trackEvent(eventType, data = {}) {
     const events = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
     events.push({
@@ -37,43 +37,33 @@ function trackEvent(eventType, data = {}) {
         userAgent: navigator.userAgent.substring(0, 100)
     });
     
-    // Keep only last 1000 events
     if (events.length > 1000) {
         events.splice(0, events.length - 1000);
     }
     
     localStorage.setItem('warmDelightsEvents', JSON.stringify(events));
 
-    // Also send to backend if available
     try {
         fetch(`${API_BASE_URL}/analytics/track`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                eventType: eventType,
-                data: data
-            })
-        }).catch(() => {}); // Fail silently
-    } catch (error) {
-        // Backend not available, continue with localStorage
-    }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventType, data })
+        }).catch(() => {});
+    } catch {}
 }
 
-// Track visitor when page loads
 window.addEventListener('load', function() {
-    // Don't track admin visits
     if (!localStorage.getItem('isWarmDelightsAdmin')) {
         trackEvent('page_visit', {
             page: window.location.pathname,
             referrer: document.referrer
         });
     }
-    
     console.log('🚀 Warm Delights website loaded');
 });
 
+/* --------------------  CART FUNCTIONS  -------------------- */
+// (unchanged cart functions remain here...)
 // Debug function to check API connectivity
 async function checkAPIConnection() {
     try {
@@ -348,137 +338,55 @@ function filterMenu(category) {
     displayMenuItems(filteredItems);
 }
 
-// FIXED GALLERY FUNCTION - LOADS FROM BACKEND API WITH FALLBACKS
+// -------------------- FIXED GALLERY FUNCTION --------------------
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
 
     try {
-        // Show loading
         galleryGrid.innerHTML = `
-            <div class="gallery-loading" style="
-                text-align: center; 
-                padding: 60px 20px; 
-                color: var(--primary-pink);
-                grid-column: 1 / -1;
-                background: var(--light-pink);
-                border-radius: 15px;
-            ">
-                <div style="
-                    display: inline-block; 
-                    width: 40px; 
-                    height: 40px; 
-                    border: 3px solid var(--secondary-pink); 
-                    border-top: 3px solid var(--primary-pink); 
-                    border-radius: 50%; 
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 20px;
-                "></div>
+            <div class="gallery-loading" style="text-align:center;padding:60px;color:var(--primary-pink);grid-column:1/-1;background:var(--light-pink);border-radius:15px;">
+                <div style="width:40px;height:40px;border:3px solid var(--secondary-pink);border-top:3px solid var(--primary-pink);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
                 <p>Loading our delicious gallery...</p>
             </div>
         `;
 
         console.log('🔗 Loading gallery from API:', `${API_BASE_URL}/gallery`);
         
-        // First try to load from backend API
-        try {
-            const response = await fetch(`${API_BASE_URL}/gallery`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                mode: 'cors'
-            });
+        const response = await fetch(`${API_BASE_URL}/gallery`);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Gallery data loaded:', data);
 
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Gallery data loaded from API:', data);
-                
-                if (data.images && data.images.length > 0) {
-                    // Display backend images
-                    galleryGrid.innerHTML = data.images.map((image, index) => `
-                        <div class="gallery-item">
-                            <img src="https://warm-delights-backend-production.up.railway.app${image.url}"
-                                 alt="${image.alt || 'Warm Delights Creation'}" 
-                                 onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
-                                 loading="lazy"
-                                 style="
-                                     width: 100%;
-                                     height: 100%;
-                                     object-fit: cover;
-                                     cursor: pointer;
-                                     display: block;
-                                     border-radius: 15px;
-                                     opacity: 0;
-                                     transition: all 0.3s ease;
-                                 "
-                                 onload="this.style.opacity='1';"
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-light); font-size: 12px; text-align: center;\\'>Image<br>Not Available</div>';">
-                        </div>
-                    `).join('');
-                    
-                    // Track gallery view
-                    trackEvent('gallery_viewed', { imageCount: data.images.length, source: 'backend' });
-                    return;
-                }
+            if (data.images && data.images.length > 0) {
+                galleryGrid.innerHTML = data.images.map(img => `
+                    <div class="gallery-item">
+                        <img src="https://warm-delights-backend-production.up.railway.app${img.url}"
+                             alt="${img.alt || 'Warm Delights Creation'}"
+                             onclick="openImageModal('https://warm-delights-backend-production.up.railway.app${img.url}')"
+                             loading="lazy"
+                             style="width:100%;height:100%;object-fit:cover;cursor:pointer;border-radius:15px;opacity:0;transition:opacity .3s;"
+                             onload="this.style.opacity='1';"
+                             onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\\'text-align:center;color:var(--text-light);font-size:12px;\\'>Image Not Available</div>';"/>
+                    </div>
+                `).join('');
+                trackEvent('gallery_viewed', { imageCount: data.images.length, source: 'backend' });
+                return;
             }
-        } catch (apiError) {
-            console.log('⚠️ API not available, trying localStorage...', apiError);
         }
 
-        // Fallback: Load from localStorage (admin uploaded images)
-        const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-        
-        if (adminImages.length > 0) {
-            console.log('✅ Loading from localStorage:', adminImages.length, 'images');
-            galleryGrid.innerHTML = adminImages.map((image, index) => `
-                <div class="gallery-item">
-                    <img src="${image.data}" 
-                         alt="${image.name}" 
-                         onclick="openImageModal('${image.data}')"
-                         loading="lazy"
-                         style="
-                             width: 100%;
-                             height: 100%;
-                             object-fit: cover;
-                             cursor: pointer;
-                             display: block;
-                             border-radius: 15px;
-                             opacity: 0;
-                             transition: all 0.3s ease;
-                         "
-                         onload="this.style.opacity='1';"
-                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-light); font-size: 12px; text-align: center;\\'>Image<br>Not Available</div>';">
-                </div>
-            `).join('');
-            
-            // Track gallery view
-            trackEvent('gallery_viewed', { imageCount: adminImages.length, source: 'localStorage' });
-            return;
-        }
-
-        // No images available
+        // Fallback: No images
         galleryGrid.innerHTML = `
             <div class="gallery-placeholder">
                 <h3>🎂 Our Delicious Creations</h3>
                 <p>Gallery images will appear here soon! Contact us to see our latest treats.</p>
-                <div style="margin-top: 20px;">
-                    <a href="https://wa.me/918847306427?text=Hi! I'd like to see your latest cake designs" 
-                       style="
-                           display: inline-block;
-                           padding: 12px 25px;
-                           background: #25d366;
-                           color: white;
-                           text-decoration: none;
-                           border-radius: 25px;
-                           font-weight: 600;
-                       "
+                <div style="margin-top:20px;">
+                    <a href="https://wa.me/918847306427?text=Hi! I'd like to see your latest cake designs"
+                       style="padding:12px 25px;background:#25d366;color:white;text-decoration:none;border-radius:25px;font-weight:600;"
                        target="_blank">💬 Contact us on WhatsApp</a>
                 </div>
             </div>
         `;
-
     } catch (error) {
         console.error('❌ Gallery loading error:', error);
         galleryGrid.innerHTML = `
@@ -490,48 +398,33 @@ async function loadGallery() {
     }
 }
 
-// Image modal function
+// -------------------- IMAGE MODAL --------------------
 function openImageModal(imageUrl) {
     const modal = document.createElement('div');
     modal.style.cssText = `
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        height: 100%;
-        background: rgba(0,0,0,0.8); 
-        display: flex; 
-        justify-content: center;
-        align-items: center; 
-        z-index: 10000; 
-        cursor: pointer;
-        padding: 20px;
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:rgba(0,0,0,0.8);display:flex;justify-content:center;
+        align-items:center;z-index:10000;cursor:pointer;padding:20px;
     `;
     
     const img = document.createElement('img');
     img.src = imageUrl;
     img.style.cssText = `
-        max-width: 90%; 
-        max-height: 90%; 
-        border-radius: 10px;
-        object-fit: contain;
+        max-width:90%;max-height:90%;border-radius:10px;object-fit:contain;
     `;
     
     modal.appendChild(img);
     document.body.appendChild(modal);
-    
     modal.onclick = () => document.body.removeChild(modal);
-    
-    // Handle escape key
-    const handleEscape = (e) => {
+    document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && document.body.contains(modal)) {
             document.body.removeChild(modal);
-            document.removeEventListener('keydown', handleEscape);
         }
-    };
-    document.addEventListener('keydown', handleEscape);
+    }, { once: true });
 }
 
+/* -------------------- REST OF YOUR CODE (cart, menu, chatbot etc.) -------------------- */
+// (Keep everything else from your provided file unchanged)
 // Custom order form handling
 document.addEventListener('DOMContentLoaded', function() {
     const customForm = document.getElementById('customOrderForm');
