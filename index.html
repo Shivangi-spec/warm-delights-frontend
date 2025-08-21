@@ -11,7 +11,7 @@
     <!-- Header -->
     <header>
         <div class="container">
-            <img src="Logo.png" alt="Warm Delights Logo" class="logo">
+            <img src="Logo.jpg" alt="Warm Delights Logo" class="logo">
             <h1>Warm Delights</h1>
             <p class="tagline">Delivering Hugs Through Cakes</p>
             
@@ -28,6 +28,7 @@
                 <a href="#story">Our Story</a>
                 <a href="#menu">Menu</a>
                 <a href="#gallery">Gallery</a>
+                <a href="#custom">Custom Orders</a>
                 <a href="#delivery">Delivery</a>
                 <a href="#contact">Contact</a>
                 <button onclick="toggleCart()" class="cart-btn">
@@ -41,6 +42,7 @@
                 <a href="#story" onclick="toggleMenu()">Our Story</a>
                 <a href="#menu" onclick="toggleMenu()">Menu</a>
                 <a href="#gallery" onclick="toggleMenu()">Gallery</a>
+                <a href="#custom" onclick="toggleMenu()">Custom Orders</a>
                 <a href="#delivery" onclick="toggleMenu()">Delivery</a>
                 <a href="#contact" onclick="toggleMenu()">Contact</a>
                 <a href="#" onclick="toggleCart(); toggleMenu();">🛒 Cart (<span id="mobileCartCount">0</span>)</a>
@@ -72,12 +74,22 @@
         </div>
     </section>
 
-    <!-- Menu Section -->
+    <!-- UPDATED Menu Section - Text-Based with Minimum Quantities -->
     <section id="menu" class="menu">
         <div class="container">
             <h2>Our Menu</h2>
-            <div id="menuGrid" class="menu-grid">
-                <div class="loading">Loading delicious options...</div>
+            <div class="category-filters" id="categoryFilters">
+                <button class="filter-btn active" onclick="filterMenu('all')">All</button>
+                <button class="filter-btn" onclick="filterMenu('cakes')">Cakes</button>
+                <button class="filter-btn" onclick="filterMenu('cookies')">Cookies</button>
+                <button class="filter-btn" onclick="filterMenu('cupcakes')">Cupcakes & Muffins</button>
+            </div>
+            <div class="menu-container">
+                <div class="menu-list-container">
+                    <ul class="menu-list" id="menuItems">
+                        <li>Loading menu...</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
@@ -86,8 +98,6 @@
     <section id="gallery" class="gallery">
         <div class="container">
             <h2>Our Gallery</h2>
-            
-            <!-- Gallery Grid -->
             <div id="galleryGrid" class="gallery-grid">
                 <div class="gallery-placeholder">
                     <h3>🎂 Our Delicious Creations</h3>
@@ -97,7 +107,78 @@
         </div>
     </section>
 
-    <!-- UPDATED DELIVERY INFO SECTION (NO ICONS) -->
+    <!-- Custom Order Section -->
+    <section id="custom" class="custom-order">
+        <div class="container">
+            <h2>Customize Your Treats</h2>
+            <div class="custom-order-content">
+                <div class="custom-description">
+                    <p>We're happy to bring your vision to life! Share a reference picture along with your preferences for size, flavour, and design, and we'll create a customised treat made just for you.</p>
+                </div>
+                
+                <div class="custom-form-container">
+                    <form id="customOrderForm" class="custom-form">
+                        <div class="input-group">
+                            <label for="referenceImage">Reference Image (Optional)</label>
+                            <input type="file" id="referenceImage" name="referenceImage" accept="image/*">
+                            <small>Upload a reference image (Max 5MB)</small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="customerName">Your Name *</label>
+                                <input type="text" id="customerName" name="customerName" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="customerPhone">Phone Number *</label>
+                                <input type="tel" id="customerPhone" name="customerPhone" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="treatSize">Size *</label>
+                                <select id="treatSize" name="treatSize" required>
+                                    <option value="">Select Size</option>
+                                    <option value="small">Small (6 inch)</option>
+                                    <option value="medium">Medium (8 inch)</option>
+                                    <option value="large">Large (10 inch)</option>
+                                    <option value="extra-large">Extra Large (12 inch)</option>
+                                    <option value="custom">Custom Size</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="treatFlavour">Flavour *</label>
+                                <select id="treatFlavour" name="treatFlavour" required>
+                                    <option value="">Select Flavour</option>
+                                    <option value="vanilla">Vanilla</option>
+                                    <option value="chocolate">Chocolate</option>
+                                    <option value="strawberry">Strawberry</option>
+                                    <option value="butterscotch">Butterscotch</option>
+                                    <option value="red-velvet">Red Velvet</option>
+                                    <option value="custom">Custom Flavour</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="designNotes">Design Notes *</label>
+                            <textarea id="designNotes" name="designNotes" rows="4" placeholder="Describe your design preferences, colors, theme, decorations, or any special requirements..." required></textarea>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="deliveryDate">Required Date</label>
+                            <input type="date" id="deliveryDate" name="deliveryDate">
+                        </div>
+
+                        <button type="submit" class="button custom-submit-btn">Submit Custom Order Request</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Delivery Info Section -->
     <section id="delivery" class="delivery-section">
         <div class="container">
             <h2>Delivery Information</h2>
@@ -106,7 +187,7 @@
                     <h3>Our Delivery Service</h3>
                     <ul class="delivery-list">
                         <li>We offer delivery across the Tricity through multiple parcel options, chosen based on your location.</li>
-                        <li>Delivery charges may vary depending on the mode of delivery and your address.</li>
+                        <li>Delivery charges may vary depending on the mode of delivery and your location.</li>
                         <li>Same-day delivery is available under certain conditions.</li>
                         <li>For a hassle-free experience, we recommend placing your order at least 2–3 days in advance.</li>
                     </ul>
@@ -151,7 +232,7 @@
         </div>
     </section>
 
-    <!-- UPDATED Contact Section (NO ICONS, CLEAN LAYOUT) -->
+    <!-- Contact Section -->
     <section id="contact" class="contact">
         <div class="container">
             <h2>Contact Us</h2>
@@ -170,13 +251,9 @@
                         <strong>Email:</strong>
                         <span>dayitagoyal10@gmail.com</span>
                     </div>
-                    <div class="contact-item">
-                        <strong>Address:</strong>
-                        <span>#60B, Fio Homes 2, Dhakoli, Zirakpur, 160104</span>
-                    </div>
-                    <div class="contact-item" data-clickable onclick="window.open('https://www.instagram.com/__.warmdelights.__?igsh=NmRkZGdpcXBrNDZw', '_blank')">
+                    <div class="contact-item" data-clickable onclick="window.open('https://www.instagram.com/.warmdelights.?igsh=NmRkZGdpcXBrNDZw', '_blank')">
                         <strong>Social:</strong>
-                        <span>@__.warmdelights.__</span>
+                        <span>@warmdelights</span>
                     </div>
                     <div class="contact-item">
                         <strong>Hours:</strong>
@@ -197,8 +274,7 @@
         </div>
     </section>
 
-
-    <!-- SHOPPING CART SIDEBAR -->
+    <!-- Shopping Cart Sidebar -->
     <div id="cartSidebar" class="cart-sidebar">
         <div class="cart-header">
             <h3>🛒 Your Cart</h3>
@@ -220,21 +296,7 @@
     <!-- Cart Overlay -->
     <div id="cartOverlay" class="cart-overlay" onclick="toggleCart()"></div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 Warm Delights. Made with ❤️ for sweet moments.</p>
-            <div class="footer-social">
-                <a href="https://wa.me/918847306427" target="_blank">WhatsApp</a>
-                <a href="https://www.instagram.com/.warmdelights.?igsh=NmRkZGdpcXBrNDZw" target="_blank">Instagram</a>
-                <a href="mailto:dayitagoyal10@gmail.com">Email</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Add this before closing </body> tag in your index.html -->
-
-    <!-- CUSTOM CHATBOT -->
+    <!-- Chatbot -->
     <div id="chatbot-container" class="chatbot-container">
         <div id="chatbot-toggle" class="chatbot-toggle" onclick="toggleChatbot()">
             <span class="chatbot-icon">💬</span>
@@ -265,6 +327,18 @@
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Warm Delights. Made with ❤️ for sweet moments.</p>
+            <div class="footer-social">
+                <a href="https://wa.me/918847306427" target="_blank">WhatsApp</a>
+                <a href="https://www.instagram.com/.warmdelights.?igsh=NmRkZGdpcXBrNDZw" target="_blank">Instagram</a>
+                <a href="mailto:dayitagoyal10@gmail.com">Email</a>
+            </div>
+        </div>
+    </footer>
 
     <script src="script.js"></script>
 </body>

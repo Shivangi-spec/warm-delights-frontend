@@ -1,4 +1,4 @@
-// Warm Delights Frontend JavaScript - WITH SHOPPING CART
+// Warm Delights Frontend JavaScript - WITH MINIMUM QUANTITIES
 const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
 
 // Global variables
@@ -6,6 +6,26 @@ let galleryImages = [];
 let allMenuItems = [];
 let currentCategory = 'all';
 let cart = [];
+
+// Updated menu data with minimum quantities
+const menuData = [
+    // Cakes
+    { id: 1, name: 'Vanilla Cake', category: 'cakes', price: 450, minOrder: 1, minOrderText: 'Minimum 1 cake' },
+    { id: 2, name: 'Chocolate Cake', category: 'cakes', price: 500, minOrder: 1, minOrderText: 'Minimum 1 cake' },
+    { id: 3, name: 'Strawberry Cake', category: 'cakes', price: 550, minOrder: 1, minOrderText: 'Minimum 1 cake' },
+    { id: 4, name: 'Butterscotch Cake', category: 'cakes', price: 550, minOrder: 1, minOrderText: 'Minimum 1 cake' },
+    
+    // Cookies - 1 box = 250g
+    { id: 5, name: 'Peanut Butter Cookies', category: 'cookies', price: 200, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
+    { id: 6, name: 'Chocolate Cookies', category: 'cookies', price: 180, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
+    { id: 7, name: 'Almond Cookies', category: 'cookies', price: 190, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
+    { id: 8, name: 'Butter Cream Cookies', category: 'cookies', price: 160, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
+    
+    // Cupcakes & Muffins - Minimum 4 pieces
+    { id: 9, name: 'Chocolate Cupcakes', category: 'cupcakes', price: 40, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' },
+    { id: 10, name: 'Whole Wheat Banana Muffins', category: 'cupcakes', price: 35, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' },
+    { id: 11, name: 'Cheesecake Cupcakes', category: 'cupcakes', price: 55, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' }
+];
 
 // Debug function to check API connectivity
 async function checkAPIConnection() {
@@ -43,20 +63,37 @@ function toggleCart() {
     cartOverlay.classList.toggle('active');
 }
 
-function addToCart(item) {
+function addToCartWithQuantity(item, itemId) {
+    const quantityInput = document.getElementById(`qty-${itemId}`);
+    const quantity = parseInt(quantityInput.value);
+    
+    if (quantity < item.minOrder) {
+        alert(`Minimum order quantity for ${item.name} is ${item.minOrder}`);
+        quantityInput.value = item.minOrder;
+        return;
+    }
+    
+    if (quantity > 50) {
+        alert(`Maximum order quantity is 50`);
+        quantityInput.value = 50;
+        return;
+    }
+    
+    // Add to cart with specified quantity
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     
     if (existingItem) {
-        existingItem.quantity += 1;
+        existingItem.quantity += quantity;
     } else {
-        cart.push({ ...item, quantity: 1 });
+        cart.push({ ...item, quantity: quantity });
     }
     
     updateCartUI();
     updateCartCount();
+    showNotification(`${quantity} ${item.name} added to cart! 🛒`);
     
-    // Show success message
-    showNotification(`${item.name} added to cart! 🛒`);
+    // Reset quantity input to minimum
+    quantityInput.value = item.minOrder;
 }
 
 function removeFromCart(itemId) {
@@ -68,12 +105,22 @@ function removeFromCart(itemId) {
 function updateQuantity(itemId, change) {
     const item = cart.find(cartItem => cartItem.id === itemId);
     if (item) {
-        item.quantity += change;
-        if (item.quantity <= 0) {
+        const menuItem = menuData.find(mi => mi.id === itemId);
+        const newQuantity = item.quantity + change;
+        
+        if (newQuantity < menuItem.minOrder) {
+            alert(`Minimum quantity for ${item.name} is ${menuItem.minOrder}`);
+            return;
+        }
+        
+        if (newQuantity <= 0) {
             removeFromCart(itemId);
-        } else {
+        } else if (newQuantity <= 50) {
+            item.quantity = newQuantity;
             updateCartUI();
             updateCartCount();
+        } else {
+            alert('Maximum quantity is 50');
         }
     }
 }
@@ -105,7 +152,7 @@ function updateCartUI() {
             <div class="cart-item">
                 <div class="cart-item-info">
                     <h4>${item.name}</h4>
-                    <p>₹${item.price}${item.priceUnit ? '/' + item.priceUnit : ''}</p>
+                    <p>₹${item.price}${item.priceUnit || ''}</p>
                     <div class="cart-item-controls">
                         <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
                         <span>Qty: ${item.quantity}</span>
@@ -180,154 +227,54 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Enhanced load menu with better error handling
-async function loadMenu() {
-    const menuGrid = document.getElementById('menuGrid');
-    if (!menuGrid) return;
-
-    try {
-        showLoading(menuGrid);
-        
-        console.log('🍰 Loading menu from:', `${API_BASE_URL}/menu`);
-        
-        const response = await fetch(`${API_BASE_URL}/menu`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            mode: 'cors'
-        });
-        
-        console.log('📡 Menu response status:', response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-        
-        allMenuItems = await response.json();
-        console.log('✅ Menu loaded:', allMenuItems.length, 'items');
-        
-        displayMenuItems(allMenuItems);
-        setupCategoryFilters();
-        
-    } catch (error) {
-        console.error('❌ Menu loading error:', error);
-        
-        menuGrid.innerHTML = `
-            <div class="menu-error" style="
-                grid-column: 1 / -1; 
-                text-align: center; 
-                padding: 40px; 
-                background: #ffe6e6; 
-                border-radius: 10px; 
-                border: 2px solid #ff9999;
-            ">
-                <h3 style="color: #cc0000; margin-bottom: 10px;">❌ Unable to load menu</h3>
-                <p style="margin-bottom: 10px;"><strong>Error:</strong> ${error.message}</p>
-                <p style="margin-bottom: 15px;">Our delicious creations will be showcased here.</p>
-                <button onclick="loadMenu()" style="
-                    padding: 10px 20px; 
-                    background: #e8a5b7; 
-                    color: white; 
-                    border: none; 
-                    border-radius: 5px; 
-                    cursor: pointer; 
-                    font-size: 14px;
-                ">
-                    🔄 Try Again
-                </button>
-            </div>
-        `;
-    }
+// Load static menu
+function loadTextMenu() {
+    allMenuItems = menuData;
+    displayMenuItems(allMenuItems);
 }
 
-// Display menu items with Add to Cart buttons
+// Display menu items with minimum quantity controls
 function displayMenuItems(items) {
-    const menuGrid = document.getElementById('menuGrid');
-    if (!menuGrid) return;
+    const menuList = document.getElementById('menuItems');
+    if (!menuList) return;
 
     if (items.length === 0) {
-        menuGrid.innerHTML = '<div class="no-items">No items found in this category.</div>';
+        menuList.innerHTML = '<li class="no-items">No items found in this category.</li>';
         return;
     }
 
-    menuGrid.innerHTML = items.map(item => `
-        <div class="menu-item" data-category="${item.category.toLowerCase()}">
-            <img src="${API_BASE_URL.replace('/api', '')}${item.image}" 
-                 alt="${item.name}" 
-                 class="menu-image" 
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\'><rect width=\\'300\\' height=\\'200\\' fill=\\'%23f4c2c2\\'/><text x=\\'150\\' y=\\'100\\' text-anchor=\\'middle\\' dy=\\'.3em\\' fill=\\'%23d67b8a\\' font-family=\\'Arial\\' font-size=\\'20\\'>${item.name}</text></svg>'"
-                 style="width: 100%; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 15px;">
-            <h3>${item.name}</h3>
-            <p class="description">${item.description}</p>
-            <div class="menu-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                <span class="price">₹${item.price}${item.priceUnit ? '/' + item.priceUnit : ''}</span>
-                ${item.eggless ? '<span class="eggless-badge" style="background: #4caf50; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">🥚 Eggless</span>' : ''}
+    menuList.innerHTML = items.map(item => `
+        <li class="menu-item" data-category="${item.category.toLowerCase()}">
+            <div class="menu-item-header">
+                <div class="menu-item-name">${item.name}</div>
+                <div class="menu-item-price">₹${item.price}${item.priceUnit || ''}</div>
             </div>
-            ${item.customizable ? '<p class="customizable" style="margin-top: 8px; color: #e8a5b7; font-weight: bold;">✨ Customizable</p>' : ''}
-            <button class="add-to-cart-btn" onclick="addToCart(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                Add to Cart 🛒
-            </button>
-        </div>
-    `).join('');
-}
-
-// Setup category filters
-function setupCategoryFilters() {
-    const menuSection = document.querySelector('.menu .container');
-    const existingFilters = menuSection.querySelector('.category-filters');
-    
-    if (existingFilters) {
-        existingFilters.remove();
-    }
-
-    const categories = ['all', ...new Set(allMenuItems.map(item => item.category.toLowerCase()))];
-    
-    const filtersHTML = `
-        <div class="category-filters" style="text-align: center; margin: 30px 0;">
-            ${categories.map(category => `
-                <button class="filter-btn ${category === currentCategory ? 'active' : ''}" 
-                        onclick="filterMenu('${category}')"
-                        style="
-                            margin: 5px; 
-                            padding: 8px 16px; 
-                            border: 2px solid #e8a5b7; 
-                            background: ${category === currentCategory ? '#e8a5b7' : 'white'}; 
-                            color: ${category === currentCategory ? 'white' : '#e8a5b7'}; 
-                            border-radius: 20px; 
-                            cursor: pointer; 
-                            font-weight: 600;
-                            transition: all 0.3s ease;
-                        "
-                        onmouseover="if (!this.classList.contains('active')) { this.style.background = '#f4c2c2'; }"
-                        onmouseout="if (!this.classList.contains('active')) { this.style.background = 'white'; }">
-                    ${category.charAt(0).toUpperCase() + category.slice(1)}
+            <div class="menu-item-min-order">${item.minOrderText}</div>
+            <div class="add-to-cart-container">
+                <input type="number" 
+                       class="quantity-input" 
+                       id="qty-${item.id}" 
+                       value="${item.minOrder}" 
+                       min="${item.minOrder}" 
+                       max="50"
+                       title="Minimum ${item.minOrder}, Maximum 50">
+                <button class="add-to-cart-btn" onclick="addToCartWithQuantity(${JSON.stringify(item).replace(/"/g, '&quot;')}, ${item.id})">
+                    Add to Cart
                 </button>
-            `).join('')}
-        </div>
-    `;
-    
-    const menuTitle = menuSection.querySelector('h2');
-    menuTitle.insertAdjacentHTML('afterend', filtersHTML);
+            </div>
+        </li>
+    `).join('');
 }
 
 // Filter menu by category
 function filterMenu(category) {
     currentCategory = category;
     
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(btn => {
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
-        btn.style.background = 'white';
-        btn.style.color = '#e8a5b7';
-        
-        if (btn.textContent.toLowerCase() === category || (category === 'all' && btn.textContent.toLowerCase() === 'all')) {
-            btn.classList.add('active');
-            btn.style.background = '#e8a5b7';
-            btn.style.color = 'white';
-        }
     });
+    event.target.classList.add('active');
 
     const filteredItems = category === 'all' 
         ? allMenuItems 
@@ -430,20 +377,89 @@ function openImageModal(imageUrl) {
     modal.onclick = () => document.body.removeChild(modal);
 }
 
-// Enhanced contact form handling
+// Custom order form handling
 document.addEventListener('DOMContentLoaded', function() {
+    const customForm = document.getElementById('customOrderForm');
     const contactForm = document.getElementById('contactForm');
+    
+    if (customForm) {
+        customForm.addEventListener('submit', handleCustomOrder);
+    }
     
     if (contactForm) {
         contactForm.addEventListener('submit', handleContactForm);
     }
     
+    // File size validation
+    const fileInput = document.getElementById('referenceImage');
+    if (fileInput) {
+        fileInput.addEventListener('change', validateFileSize);
+    }
+    
     // Load initial data
-    loadMenu();
+    loadTextMenu();
     loadGallery();
     updateCartCount();
 });
 
+function validateFileSize(event) {
+    const file = event.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { // 5MB
+        alert('File size must be less than 5MB');
+        event.target.value = '';
+    }
+}
+
+async function handleCustomOrder(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const submitBtn = event.target.querySelector('.custom-submit-btn');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+        
+        // Create WhatsApp message
+        const customerName = formData.get('customerName');
+        const customerPhone = formData.get('customerPhone');
+        const treatSize = formData.get('treatSize');
+        const treatFlavour = formData.get('treatFlavour');
+        const designNotes = formData.get('designNotes');
+        const deliveryDate = formData.get('deliveryDate');
+        
+        const whatsappMessage = `Hi! I'd like to place a custom order from Warm Delights:
+
+*Customer Details:*
+Name: ${customerName}
+Phone: ${customerPhone}
+
+*Custom Order Details:*
+Size: ${treatSize}
+Flavour: ${treatFlavour}
+Design Notes: ${designNotes}
+${deliveryDate ? `Required Date: ${deliveryDate}` : ''}
+
+Please confirm availability and pricing.`;
+
+        // Open WhatsApp
+        const whatsappURL = `https://wa.me/918847306427?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappURL, '_blank');
+        
+        // Reset form
+        event.target.reset();
+        alert('Custom order request sent via WhatsApp! We will contact you soon.');
+        
+    } catch (error) {
+        alert('Failed to submit custom order. Please try again.');
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Enhanced contact form handling
 async function handleContactForm(event) {
     event.preventDefault();
     
@@ -497,67 +513,7 @@ async function handleContactForm(event) {
     }
 }
 
-// Utility function to show loading state
-function showLoading(element) {
-    element.innerHTML = `
-        <div class="loading" style="
-            text-align: center; 
-            padding: 40px; 
-            color: #e8a5b7;
-            grid-column: 1 / -1;
-        ">
-            <div style="
-                display: inline-block; 
-                width: 40px; 
-                height: 40px; 
-                border: 4px solid #f3f3f3; 
-                border-top: 4px solid #e8a5b7; 
-                border-radius: 50%; 
-                animation: spin 2s linear infinite;
-                margin-bottom: 15px;
-            "></div>
-            <p>Loading...</p>
-        </div>
-    `;
-}
-
-// Smooth scrolling for navigation links
-document.addEventListener('DOMContentLoaded', function() {
-    const navLinks = document.querySelectorAll('nav a[href^="#"]');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const targetId = this.getAttribute('href');
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-});
-
-// Connection check on page load
-window.addEventListener('load', function() {
-    console.log('🚀 Warm Delights website loaded');
-    console.log('🔗 Backend URL:', API_BASE_URL);
-    
-    // Show connection status
-    checkAPIConnection().then(isConnected => {
-        if (isConnected) {
-            console.log('✅ Backend connection successful');
-        } else {
-            console.log('❌ Backend connection failed - some features may not work');
-        }
-    });
-});
-
-// UPDATED CHATBOT FUNCTIONALITY WITH MENU CATEGORIES
+// CHATBOT FUNCTIONALITY
 let chatbotOpen = false;
 
 function toggleChatbot() {
@@ -666,15 +622,15 @@ function showCategoryItems(category) {
             { name: 'Butterscotch Cake', price: '₹550', desc: 'Butterscotch delight with caramel flavoring' }
         ],
         cupcakes: [
-            { name: 'Chocolate Cupcakes', price: '₹40/pc', desc: 'Moist chocolate cupcakes with creamy frosting' },
-            { name: 'Banana Muffins', price: '₹35/pc', desc: 'Healthy whole wheat banana muffins' },
-            { name: 'Cheesecake Cupcakes', price: '₹55/pc', desc: 'Creamy cheesecake cupcakes with graham base' }
+            { name: 'Chocolate Cupcakes', price: '₹40/pc', desc: 'Moist chocolate cupcakes with creamy frosting (Min 4 pieces)' },
+            { name: 'Banana Muffins', price: '₹35/pc', desc: 'Healthy whole wheat banana muffins (Min 4 pieces)' },
+            { name: 'Cheesecake Cupcakes', price: '₹55/pc', desc: 'Creamy cheesecake cupcakes with graham base (Min 4 pieces)' }
         ],
         cookies: [
-            { name: 'Peanut Butter Cookies', price: '₹50/pc', desc: 'Crunchy eggless peanut butter cookies' },
-            { name: 'Chocolate Cookies', price: '₹40/pc', desc: 'Soft eggless chocolate cookies with chips' },
-            { name: 'Almond Cookies', price: '₹45/pc', desc: 'Crunchy almond cookies with real pieces' },
-            { name: 'Butter Cream Cookies', price: '₹30/pc', desc: 'Smooth butter cream cookies' }
+            { name: 'Peanut Butter Cookies', price: '₹200/box', desc: 'Crunchy eggless cookies (250g box)' },
+            { name: 'Chocolate Cookies', price: '₹180/box', desc: 'Soft eggless chocolate cookies with chips (250g box)' },
+            { name: 'Almond Cookies', price: '₹190/box', desc: 'Crunchy almond cookies with real pieces (250g box)' },
+            { name: 'Butter Cream Cookies', price: '₹160/box', desc: 'Smooth butter cream cookies (250g box)' }
         ]
     };
     
@@ -826,7 +782,7 @@ function generateChatbotResponse(message) {
     }
     
     if (message.includes('price') || message.includes('cost') || message.includes('much')) {
-        return "Our prices range from ₹30-₹550! Cookies start at ₹30/pc, Cupcakes at ₹35/pc, and Cakes from ₹450. What specific item are you interested in? 💰";
+        return "Our prices range from ₹160-₹550! Cookies start at ₹160/box, Cupcakes at ₹35/pc (min 4), and Cakes from ₹450. What specific item are you interested in? 💰";
     }
     
     if (message.includes('cake')) {
@@ -845,7 +801,7 @@ function generateChatbotResponse(message) {
     }
     
     if (message.includes('delivery')) {
-        return "We deliver across the Tricity! 🚚 Charges vary by location. Same-day delivery available. For best experience, order 2-3 days in advance. What's your location?";
+        return "We deliver across the Tricity! 🚚 Charges vary by location. Same-day delivery available. For best experience, order 2-3 days in advance.";
     }
     
     if (message.includes('contact') || message.includes('phone') || message.includes('whatsapp')) {
@@ -853,7 +809,7 @@ function generateChatbotResponse(message) {
     }
     
     if (message.includes('custom')) {
-        return "Yes! We love custom orders! 🎨 We can personalize cakes with custom flavors, designs, and decorations. Contact us on WhatsApp +918847306427 to discuss your special requirements!";
+        return "Yes! We love custom orders! 🎨 Check our Custom Orders section above or contact us on WhatsApp +918847306427 to discuss your requirements!";
     }
     
     if (message.includes('eggless')) {
@@ -877,3 +833,39 @@ function addMessage(text, sender) {
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
+
+// Smooth scrolling for navigation links
+document.addEventListener('DOMContentLoaded', function() {
+    const navLinks = document.querySelectorAll('nav a[href^="#"]');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+
+// Connection check on page load
+window.addEventListener('load', function() {
+    console.log('🚀 Warm Delights website loaded');
+    console.log('🔗 Backend URL:', API_BASE_URL);
+    
+    // Show connection status
+    checkAPIConnection().then(isConnected => {
+        if (isConnected) {
+            console.log('✅ Backend connection successful');
+        } else {
+            console.log('❌ Backend connection failed - some features may not work');
+        }
+    });
+});
