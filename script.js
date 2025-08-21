@@ -960,3 +960,84 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ADD THESE FUNCTIONS TO YOUR EXISTING script.js FILE
+
+// Enhanced image loading with responsive support
+function displayImages() {
+    fetch('/api/images')
+        .then(response => response.json())
+        .then(images => {
+            const gallery = document.getElementById('gallery');
+            if (!gallery) return;
+            
+            gallery.innerHTML = '';
+            
+            images.forEach(image => {
+                const imageItem = createResponsiveImageElement(image);
+                gallery.appendChild(imageItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading images:', error);
+        });
+}
+
+function createResponsiveImageElement(imageName) {
+    const galleryItem = document.createElement('div');
+    galleryItem.className = 'gallery-item';
+    
+    const img = document.createElement('img');
+    img.src = `/uploads/${imageName}`;
+    img.alt = 'Warm Delights Cake';
+    img.className = 'responsive-img';
+    img.loading = 'lazy';
+    
+    // Error handling for images
+    img.onerror = function() {
+        this.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available';
+        this.alt = 'Image not available';
+    };
+    
+    galleryItem.appendChild(img);
+    return galleryItem;
+}
+
+// Image optimization function
+function optimizeImageDisplay() {
+    const images = document.querySelectorAll('.responsive-img');
+    
+    images.forEach(img => {
+        if (img.complete) {
+            img.style.opacity = '1';
+        } else {
+            img.style.opacity = '0.5';
+            img.addEventListener('load', function() {
+                this.style.opacity = '1';
+            });
+        }
+    });
+}
+
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// UPDATE YOUR EXISTING DOMContentLoaded EVENT LISTENER
+document.addEventListener('DOMContentLoaded', function() {
+    displayImages(); // Add this line
+    
+    // Add this line
+    window.addEventListener('resize', debounce(optimizeImageDisplay, 250));
+    
+    // Keep your existing code here...
+});
