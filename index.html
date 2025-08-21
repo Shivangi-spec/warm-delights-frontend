@@ -103,10 +103,11 @@
         <div class="container">
             <h2>Our Gallery</h2>
             <div id="galleryGrid" class="gallery-grid">
-                <!-- Images will be loaded dynamically -->
+                <p style="text-align:center; color:#6b4e57;">Loading gallery...</p>
             </div>
         </div>
     </section>
+
 
 
     <!-- Custom Order Section -->
@@ -343,5 +344,36 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+    // Load gallery images from backend
+    async function loadGallery() {
+        const galleryGrid = document.getElementById('galleryGrid');
+        galleryGrid.innerHTML = '<p style="text-align:center; color:#6b4e57;">Loading gallery...</p>';
+
+        try {
+            const response = await fetch('/api/gallery');
+            if (!response.ok) throw new Error('Failed to fetch gallery');
+            
+            const data = await response.json();
+            if (!data.images || data.images.length === 0) {
+                galleryGrid.innerHTML = '<p style="text-align:center; color:#6b4e57;">No images uploaded yet</p>';
+                return;
+            }
+
+            galleryGrid.innerHTML = data.images.map(img => `
+                <div class="gallery-item">
+                    <img src="${img.url}" alt="${img.alt || 'Warm Delights Gallery'}">
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('❌ Error loading gallery:', error);
+            galleryGrid.innerHTML = '<p style="text-align:center; color:red;">Failed to load gallery. Please try again later.</p>';
+        }
+    }
+
+    // Load gallery when page loads
+    document.addEventListener('DOMContentLoaded', loadGallery);
+    </script>
+
 </body>
 </html>
