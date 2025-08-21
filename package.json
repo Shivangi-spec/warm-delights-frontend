@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "live-server .",
+    "build": "echo 'Building static frontend...'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shivangi-spec/warm-delights-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Shivangi-spec/warm-delights-frontend/issues"
+  },
+  "homepage": "https://github.com/Shivangi-spec/warm-delights-frontend#readme",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

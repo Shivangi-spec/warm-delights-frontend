@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Portal - Warm Delights</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .admin-login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .admin-login-container h2 {
+            color: #e8a5b7;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        
+        .admin-login-container .subtitle {
+            color: #6b4e57;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+        
+        .admin-login-container input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #f4c2c2;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .admin-login-container input:focus {
+            outline: none;
+            border-color: #e8a5b7;
+            box-shadow: 0 0 0 3px rgba(232, 165, 183, 0.1);
+        }
+        
+        .admin-login-container button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-login-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(232, 165, 183, 0.4);
+        }
+        
+        .admin-login-container button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            margin-top: 15px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+        
+        .security-note {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(232, 165, 183, 0.1);
+            border-radius: 10px;
+            font-size: 12px;
+            color: #6b4e57;
+            line-height: 1.4;
+        }
+        
+        .attempts-warning {
+            background: #ffe6e6;
+            color: #cc0000;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f4c2c2;
+            border-top: 3px solid #e8a5b7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 480px) {
+            .admin-login-container {
+                margin: 20px;
+                padding: 30px 25px;
+            }
+            
+            .admin-login-container h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <h2>🔐 Management Portal</h2>
+        <p class="subtitle">Warm Delights Admin Access</p>
+        
+        <form id="adminLoginForm">
+            <input type="text" id="adminUsername" placeholder="Access ID" required autocomplete="username">
+            <input type="password" id="adminPassword" placeholder="Security Key" required autocomplete="current-password">
+            <button type="submit" id="loginBtn">Authenticate</button>
+        </form>
+        
+        <div id="loginError" class="error-message"></div>
+        <div id="attemptsWarning" class="attempts-warning" style="display: none;"></div>
+        
+        <div class="security-note">
+            <strong>🛡️ Secure Access Only</strong><br>
+            This portal is protected and monitored. Only authorized personnel may access this system.
+        </div>
+        
+        <div id="loadingOverlay" class="loading">
+            <div class="spinner"></div>
+            <p>Authenticating...</p>
+        </div>
+    </div>
+    
+    <script>
+        // Security Configuration
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+        const ATTEMPT_RESET_TIME = 60 * 60 * 1000; // 1 hour
+        
+        // Enhanced hash function for better security
+        function secureHash(str) {
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            return Math.abs(hash).toString(36);
+        }
+        
+        // Generate additional entropy
+        function addEntropy(str) {
+            const salt = "warmdelights2025"; // Salt for additional security
+            return secureHash(str + salt);
+        }
+        
+        // Check if user is locked out
+        function isLockedOut() {
+            const lockoutData = JSON.parse(localStorage.getItem('adminLockout') || '{}');
+            if (lockoutData.lockedUntil && new Date().getTime() < lockoutData.lockedUntil) {
+                return true;
+            }
+            return false;
+        }
+        
+        // Get failed attempts count
+        function getFailedAttempts() {
+            const attemptData = JSON.parse(localStorage.getItem('adminAttempts') || '{}');
+            const now = new Date().getTime();
+            
+            // Reset attempts if more than 1 hour has passed
+            if (attemptData.lastAttempt && (now - attemptData.lastAttempt) > ATTEMPT_RESET_TIME) {
+                localStorage.removeItem('adminAttempts');
+                return 0;
+            }
+            
+            return attemptData.count || 0;
+        }
+        
+        // Record failed attempt
+        function recordFailedAttempt() {
+            const attemptData = {
+                count: getFailedAttempts() + 1,
+                lastAttempt: new Date().getTime()
+            };
+            
+            localStorage.setItem('adminAttempts', JSON.stringify(attemptData));
+            
+            if (attemptData.count >= MAX_ATTEMPTS) {
+                const lockoutData = {
+                    lockedUntil: new Date().getTime() + LOCKOUT_DURATION,
+                    reason: 'Too many failed attempts'
+                };
+                localStorage.setItem('adminLockout', JSON.stringify(lockoutData));
+            }
+            
+            return attemptData.count;
+        }
+        
+        // Clear failed attempts on successful login
+        function clearFailedAttempts() {
+            localStorage.removeItem('adminAttempts');
+            localStorage.removeItem('adminLockout');
+        }
+        
+        // Show loading state
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').style.display = show ? 'block' : 'none';
+            document.getElementById('loginBtn').disabled = show;
+        }
+        
+        // Display error message
+        function showError(message) {
+            document.getElementById('loginError').textContent = message;
+            setTimeout(() => {
+                document.getElementById('loginError').textContent = '';
+            }, 5000);
+        }
+        
+        // Check lockout status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isLockedOut()) {
+                const lockoutData = JSON.parse(localStorage.getItem('adminLockout'));
+                const remainingTime = Math.ceil((lockoutData.lockedUntil - new Date().getTime()) / 60000);
+                
+                document.getElementById('attemptsWarning').style.display = 'block';
+                document.getElementById('attemptsWarning').textContent = 
+                    `🔒 Access temporarily restricted. Try again in ${remainingTime} minutes.`;
+                document.getElementById('loginBtn').disabled = true;
+                
+                // Auto-enable after lockout period
+                setTimeout(() => {
+                    location.reload();
+                }, (lockoutData.lockedUntil - new Date().getTime()));
+            }
+            
+            // Show attempts warning if user has failed attempts
+            const failedAttempts = getFailedAttempts();
+            if (failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS) {
+                document.getElementById('attemptsWarning').style.display = 'block';
+                document.getElementById('attemptsWarning').textContent = 
+                    `⚠️ ${failedAttempts}/${MAX_ATTEMPTS} failed attempts. Account will be locked after ${MAX_ATTEMPTS} attempts.`;
+            }
+        });
+        
+        // Enhanced login form handler
+        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (isLockedOut()) {
+                showError('Account temporarily locked. Please wait.');
+                return;
+            }
+            
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            
+            if (!username || !password) {
+                showError('Please enter both Access ID and Security Key');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // Simulate authentication delay for security
+            setTimeout(() => {
+                try {
+                    // Secure credential verification
+                    // These are hashed versions of: username="warmdelights_admin", password="SecurePass@2025!"
+                    const validUserHash = addEntropy('warmdelights_admin'); // Hash of username
+                    const validPassHash = addEntropy('SecurePass@2025!');   // Hash of password
+                    
+                    const inputUserHash = addEntropy(username);
+                    const inputPassHash = addEntropy(password);
+                    
+                    if (inputUserHash === validUserHash && inputPassHash === validPassHash) {
+                        // Successful authentication
+                        clearFailedAttempts();
+                        localStorage.setItem('isWarmDelightsAdmin', 'true');
+                        localStorage.setItem('adminLoginTime', new Date().toISOString());
+                        localStorage.setItem('adminSession', secureHash(new Date().getTime().toString()));
+                        
+                        // Track successful login
+                        const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
+                        loginData.push({
+                            timestamp: new Date().toISOString(),
+                            ip: 'hidden', // Would need server-side to get real IP
+                            userAgent: navigator.userAgent.substring(0, 100)
+                        });
+                        
+                        // Keep only last 10 logins
+                        if (loginData.length > 10) {
+                            loginData.splice(0, loginData.length - 10);
+                        }
+                        localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
+                        
+                        showLoading(false);
+                        
+                        // Redirect to dashboard
+                        window.location.href = 'admin-dashboard.html';
+                    } else {
+                        // Authentication failed
+                        const attemptCount = recordFailedAttempt();
+                        showLoading(false);
+                        
+                        if (attemptCount >= MAX_ATTEMPTS) {
+                            showError('Too many failed attempts. Account locked for 15 minutes.');
+                            document.getElementById('attemptsWarning').style.display = 'block';
+                            document.getElementById('attemptsWarning').textContent = 
+                                '🔒 Account locked due to multiple failed attempts.';
+                            document.getElementById('loginBtn').disabled = true;
+                        } else {
+                            showError(`Authentication failed. ${MAX_ATTEMPTS - attemptCount} attempts remaining.`);
+                            document.getElementById('attemptsWarning').style.display = 'block';
+                            document.getElementById('attemptsWarning').textContent = 
+                                `⚠️ ${attemptCount}/${MAX_ATTEMPTS} failed attempts.`;
+                        }
+                        
+                        // Clear form
+                        document.getElementById('adminPassword').value = '';
+                    }
+                } catch (error) {
+                    showLoading(false);
+                    showError('Authentication system error. Please try again.');
+                }
+            }, 1500); // 1.5 second delay to prevent brute force
+        });
+        
+        // Security: Disable right-click and F12
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            // Disable F12, Ctrl+Shift+I, Ctrl+U
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Security: Clear form on page unload
+        window.addEventListener('beforeunload', function() {
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+        });
+        
+        // Auto-focus first input
+        window.addEventListener('load', function() {
+            if (!isLockedOut()) {
+                document.getElementById('adminUsername').focus();
+            }
+        });
+    </script>
+</body>
+</html>

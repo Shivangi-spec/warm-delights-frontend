@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Warm Delights</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #fdf2f8;
+            color: #4a2e38;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .header-left h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .session-info {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .session-timer {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 12px 25px;
+            background: white;
+            border: 2px solid #e8a5b7;
+            color: #e8a5b7;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active,
+        .tab-btn:hover {
+            background: #e8a5b7;
+            color: white;
+        }
+        
+        .admin-section {
+            display: none;
+        }
+        
+        .admin-section.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-card h3 {
+            color: #e8a5b7;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #e8a5b7;
+            margin: 15px 0;
+        }
+        
+        .stat-label {
+            color: #6b4e57;
+            font-size: 0.9rem;
+        }
+        
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .upload-section h3 {
+            color: #e8a5b7;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        
+        .upload-area {
+            border: 2px dashed #e8a5b7;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #d67b8a;
+            background: #fdf2f8;
+        }
+        
+        .upload-area p {
+            margin-bottom: 10px;
+            color: #4a2e38;
+        }
+        
+        .upload-area input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .admin-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .admin-gallery-item {
+            position: relative;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .admin-gallery-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .admin-gallery-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        
+        .admin-gallery-item .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-gallery-item .delete-btn:hover {
+            background: #cc0000;
+            transform: scale(1.1);
+        }
+        
+        .image-info {
+            padding: 15px;
+        }
+        
+        .image-info p {
+            margin: 0;
+            font-size: 12px;
+            color: #6b4e57;
+        }
+        
+        .visitor-log {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .visitor-log h3 {
+            color: #e8a5b7;
+            margin-bottom: 20px;
+        }
+        
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f4c2c2;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .activity-log {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .activity-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f4c2c2;
+            font-size: 14px;
+        }
+        
+        .activity-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-action {
+            font-weight: 600;
+            color: #e8a5b7;
+        }
+        
+        .activity-time {
+            color: #6b4e57;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-right {
+                justify-content: center;
+            }
+            
+            .admin-tabs {
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .admin-container {
+                padding: 20px 15px;
+            }
+            
+            .upload-section,
+            .visitor-log,
+            .activity-log {
+                padding: 20px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <div class="header-left">
+            <h1>🧁 Warm Delights Admin Dashboard</h1>
+            <div class="session-info" id="sessionInfo">Session active</div>
+        </div>
+        <div class="header-right">
+            <div class="session-timer" id="sessionTimer">Loading...</div>
+            <button onclick="logout()" class="logout-btn" title="Ctrl+L for quick logout">
+                🚪 Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="showSection('analytics')">📊 Analytics</button>
+            <button class="tab-btn" onclick="showSection('gallery')">📸 Gallery Upload</button>
+            <button class="tab-btn" onclick="showSection('visitors')">👥 Visitors</button>
+            <button class="tab-btn" onclick="showSection('activity')">📋 Admin Activity</button>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics-section" class="admin-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>👥 Total Visitors</h3>
+                    <p class="stat-number" id="totalVisitors">0</p>
+                    <span class="stat-label">All time visits</span>
+                </div>
+                <div class="stat-card">
+                    <h3>📅 Today's Visitors</h3>
+                    <p class="stat-number" id="todayVisitors">0</p>
+                    <span class="stat-label">Last 24 hours</span>
+                </div>
+                <div class="stat-card">
+                    <h3>🛒 Cart Additions</h3>
+                    <p class="stat-number" id="cartAdditions">0</p>
+                    <span class="stat-label">Items added to cart</span>
+                </div>
+                <div class="stat-card">
+                    <h3>💬 WhatsApp Orders</h3>
+                    <p class="stat-number" id="whatsappOrders">0</p>
+                    <span class="stat-label">Orders via WhatsApp</span>
+                </div>
+                <div class="stat-card">
+                    <h3>💬 Chatbot Chats</h3>
+                    <p class="stat-number" id="chatInteractions">0</p>
+                    <span class="stat-label">Chat conversations</span>
+                </div>
+                <div class="stat-card">
+                    <h3>📧 Contact Forms</h3>
+                    <p class="stat-number" id="contactSubmissions">0</p>
+                    <span class="stat-label">Form submissions</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Upload Section -->
+        <div id="gallery-section" class="admin-section">
+            <div class="upload-section">
+                <h3>📸 Upload Gallery Images</h3>
+                <div class="upload-area" onclick="document.getElementById('imageUpload').click()">
+                    <p>📤 Click here or drag & drop images to upload</p>
+                    <p style="font-size: 14px; color: #6b4e57; margin-top: 10px;">
+                        Supported formats: JPG, PNG, GIF (Max 5MB each)
+                    </p>
+                    <input type="file" id="imageUpload" accept="image/*" multiple>
+                </div>
+                <button onclick="uploadImages()" class="upload-btn">Upload Selected Images</button>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="upload-section">
+                <h3>🖼️ Current Gallery Images</h3>
+                <div id="adminGallery" class="admin-gallery">
+                    <p>No images uploaded yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visitors Section -->
+        <div id="visitors-section" class="admin-section">
+            <div class="visitor-log">
+                <h3>📊 Recent Visitor Activity</h3>
+                <div id="visitorLog">
+                    <p>Loading visitor data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Activity Section -->
+        <div id="activity-section" class="admin-section">
+            <div class="activity-log">
+                <h3>📋 Admin Activity Log</h3>
+                <div id="activityLog">
+                    <p>Loading activity data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+L for quick logout
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                logout();
+            }
+            
+            // Escape key to show logout confirmation
+            if (e.key === 'Escape') {
+                if (confirm('Press OK to logout, Cancel to continue')) {
+                    logout();
+                }
+            }
+            
+            // Ctrl+R for refresh analytics
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                loadAnalytics();
+                loadVisitorLog();
+                loadActivityLog();
+            }
+        });
+        
+        // Auto-save on visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                trackAdminActivity('dashboard_hidden');
+            } else {
+                trackAdminActivity('dashboard_visible');
+            }
+        });
+        
+        // Warning before closing tab
+        window.addEventListener('beforeunload', function(e) {
+            trackAdminActivity('dashboard_exit');
+        });
+    </script>
+
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>
