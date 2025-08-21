@@ -399,7 +399,7 @@ async function loadGallery() {
                     // Display backend images
                     galleryGrid.innerHTML = data.images.map((image, index) => `
                         <div class="gallery-item">
-                            <img src="${API_BASE_URL.replace('/api', '')}${image.url}" 
+                            <img src="https://warm-delights-backend-production.up.railway.app${image.url}"
                                  alt="${image.alt || 'Warm Delights Creation'}" 
                                  onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
                                  loading="lazy"
