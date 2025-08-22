@@ -1,8 +1,11 @@
-/* Warm Delights Frontend JavaScript - COMPLETE FIXED VERSION */
+/* Warm Delights Frontend JavaScript - WITH GLOBAL STORAGE + SESSION CACHE */
 
 // **🌍 GLOBAL STORAGE + SESSION CACHE CONFIGURATION**
 const API_CONFIG = {
-    BACKEND_URL: 'https://warm-delights-backend-production.up.railway.app',
+    // Replace with your actual Railway backend URL
+    BACKEND_URL: window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000' 
+        : 'https://warm-delights-backend-production.up.railway.app',
     
     // Session cache configuration
     CACHE_KEY: 'warmDelights_gallery_cache',
@@ -43,7 +46,7 @@ const menuData = [
     { id: 11, name: 'Cheesecake Cupcakes', category: 'cupcakes', price: 55, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' }
 ];
 
-// **📊 ENHANCED ANALYTICS TRACKING**
+// **📊 ENHANCED ANALYTICS TRACKING WITH SESSION STORAGE**
 function trackEvent(eventType, data = {}) {
     // Store in session storage for current session
     const sessionEvents = JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]');
@@ -143,65 +146,38 @@ function clearImageCache() {
     }
 }
 
-// **🖼️ FIXED IMAGE LOADING FUNCTIONS**
-function createResponsiveImageElement(imageData, index) {
-    console.log(`Creating image element ${index + 1}:`, imageData);
-    
+// **🖼️ ENHANCED IMAGE LOADING WITH GLOBAL STORAGE + SESSION CACHE**
+function createResponsiveImageElement(imageName) {
     const galleryItem = document.createElement('div');
     galleryItem.className = 'gallery-item';
-    galleryItem.style.animationDelay = `${index * 0.1}s`;
     
     const img = document.createElement('img');
+    img.alt = 'Warm Delights Cake';
     img.className = 'responsive-img';
     img.loading = 'lazy';
     
-    // Handle different image data formats
-    let imageName, imageUrl;
-    
-    if (typeof imageData === 'string') {
-        // Simple string filename
-        imageName = imageData;
-        imageUrl = `${API_CONFIG.BACKEND_URL}/uploads/${imageName}`;
-    } else if (imageData && typeof imageData === 'object') {
-        // Object with various possible properties
-        imageName = imageData.filename || imageData.name || imageData.originalname || 'unknown';
-        imageUrl = imageData.url || imageData.path || `${API_CONFIG.BACKEND_URL}/uploads/${imageName}`;
-        
-        // Handle relative paths
-        if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith(API_CONFIG.BACKEND_URL)) {
-            imageUrl = `${API_CONFIG.BACKEND_URL}${imageUrl}`;
-        }
-    } else {
-        console.warn('Unknown image data format:', imageData);
-        return null;
-    }
-    
-    img.alt = imageName || 'Warm Delights Creation';
-    
     // Try multiple URLs for maximum compatibility
     let currentUrlIndex = 0;
-    const possibleUrls = [
-        imageUrl,
-        `${API_CONFIG.BACKEND_URL}/uploads/${imageName}`,
-        `${API_CONFIG.BACKEND_URL}/api/uploads/${imageName}`,
-        `${API_CONFIG.BACKEND_URL}/images/${imageName}`,
-        'https://via.placeholder.com/300x200/f4c2c2/d67b8a?text=Warm+Delights'
-    ];
     
     function tryNextUrl() {
-        if (currentUrlIndex < possibleUrls.length) {
-            img.src = possibleUrls[currentUrlIndex];
+        if (currentUrlIndex < API_CONFIG.IMAGE_PATHS.length) {
+            img.src = `${API_CONFIG.BACKEND_URL}${API_CONFIG.IMAGE_PATHS[currentUrlIndex]}${imageName}`;
             currentUrlIndex++;
+        } else {
+            // All URLs failed, use placeholder
+            img.src = 'https://via.placeholder.com/300x200/f4c2c2/d67b8a?text=Warm+Delights';
+            img.alt = 'Image not available';
         }
     }
     
     img.onerror = function() {
-        console.log(`❌ Image failed: ${this.src}, trying next...`);
+        console.log(`Image failed: ${this.src}, trying next...`);
         tryNextUrl();
     };
     
     img.onload = function() {
-        console.log(`✅ Image loaded: ${imageName}`);
+        console.log(`✅ Image loaded successfully: ${this.src}`);
+        // Track image view
         trackImageView(imageName);
     };
     
@@ -215,13 +191,13 @@ function createResponsiveImageElement(imageData, index) {
     return galleryItem;
 }
 
-// **🌍 FIXED GALLERY LOADING FUNCTION**
+// **🌍 LOAD GALLERY FROM GLOBAL STORAGE WITH SESSION CACHE**
 async function loadGallery() {
     console.log('🖼️ Loading gallery with global storage + session cache...');
     
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
-        console.log('❌ Gallery grid not found in DOM');
+        console.log('Gallery grid not found');
         return;
     }
 
@@ -258,13 +234,15 @@ async function loadGallery() {
         `;
 
         // Step 3: Fetch from global backend storage
-        console.log('🌍 Fetching from global storage...');
+        console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
+        
         const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
-            }
+                'Access-Control-Allow-Origin': '*'
+            },
+            mode: 'cors'
         });
 
         if (!response.ok) {
@@ -272,9 +250,9 @@ async function loadGallery() {
         }
 
         images = await response.json();
-        console.log(`✅ Loaded ${images.length} images from global storage:`, images);
+        console.log(`✅ Loaded ${images.length} images from global storage`);
 
-        if (images && images.length > 0) {
+        if (images.length > 0) {
             // Cache the images in session storage
             cacheImages(images);
             
@@ -296,10 +274,13 @@ async function loadGallery() {
         
         if (adminImages.length > 0) {
             console.log('📱 Loading from localStorage:', adminImages.length, 'images');
-            renderImages(adminImages, 'localStorage');
+            
+            // Convert localStorage format to standard format
+            const localImages = adminImages.map(img => img.name || img.filename);
+            renderImages(localImages, 'localStorage');
             
             trackEvent('gallery_loaded', { 
-                imageCount: adminImages.length, 
+                imageCount: localImages.length, 
                 source: 'localStorage',
                 cached: false 
             });
@@ -315,92 +296,65 @@ async function loadGallery() {
     }
 }
 
-// **🎨 FIXED RENDER IMAGES FUNCTION**
+// **🎨 RENDER IMAGES FUNCTION**
 function renderImages(images, source) {
-    console.log(`🎨 Rendering ${images.length} images from ${source}:`, images);
-
     const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) {
-        console.error('❌ Gallery grid element not found');
-        return;
-    }
+    if (!galleryGrid) return;
     
     galleryGrid.innerHTML = '';
     
     if (!images || images.length === 0) {
-        console.log('⚠️ No images to render');
         showEmptyGallery();
         return;
     }
 
     // Create cache indicator
     if (source === 'session-cache') {
-        showCacheIndicator();
-    }
-
-    let renderedCount = 0;
-
-    // Render each image with error handling
-    images.forEach((imageData, index) => {
-        try {
-            const imageItem = createResponsiveImageElement(imageData, index);
-            
-            if (imageItem) {
-                galleryGrid.appendChild(imageItem);
-                renderedCount++;
-            } else {
-                console.warn('Failed to create image element for:', imageData);
-            }
-        } catch (error) {
-            console.error('Error rendering image:', imageData, error);
-        }
-    });
-
-    console.log(`🖼️ Successfully rendered ${renderedCount} out of ${images.length} images`);
-    
-    if (renderedCount === 0) {
-        showEmptyGallery();
-    }
-    
-    // Store rendered images globally
-    galleryImages = images;
-}
-
-function showCacheIndicator() {
-    const cacheIndicator = document.createElement('div');
-    cacheIndicator.className = 'cache-indicator';
-    cacheIndicator.textContent = '⚡ Loaded from cache';
-    cacheIndicator.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 10px;
-        background: #4CAF50;
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        z-index: 1000;
-        opacity: 1;
-        transition: opacity 0.3s ease;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    `;
-    document.body.appendChild(cacheIndicator);
-    
-    setTimeout(() => {
-        cacheIndicator.style.opacity = '0';
+        const cacheIndicator = document.createElement('div');
+        cacheIndicator.className = 'cache-indicator';
+        cacheIndicator.textContent = '⚡ Loaded from cache';
+        cacheIndicator.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(cacheIndicator);
+        
         setTimeout(() => {
             if (document.body.contains(cacheIndicator)) {
-                document.body.removeChild(cacheIndicator);
+                cacheIndicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(cacheIndicator)) {
+                        document.body.removeChild(cacheIndicator);
+                    }
+                }, 300);
             }
-        }, 300);
-    }, 3000);
+        }, 2000);
+    }
+
+    images.forEach((imageName, index) => {
+        const imageItem = createResponsiveImageElement(imageName);
+        
+        // Add staggered animation
+        imageItem.style.animationDelay = `${index * 0.1}s`;
+        imageItem.style.animation = 'fadeInUp 0.5s ease forwards';
+        
+        galleryGrid.appendChild(imageItem);
+    });
+
+    console.log(`🖼️ Rendered ${images.length} images from ${source}`);
 }
 
 function showEmptyGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) return;
-    
     galleryGrid.innerHTML = `
         <div class="gallery-placeholder" style="grid-column: 1 / -1;">
             <h3>🎂 Our Delicious Creations</h3>
@@ -434,8 +388,6 @@ function showEmptyGallery() {
 
 function handleGalleryError(error) {
     const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) return;
-    
     galleryGrid.innerHTML = `
         <div class="gallery-error" style="
             grid-column: 1 / -1;
@@ -489,40 +441,33 @@ function trackImageView(filename) {
     });
 }
 
-// **🔧 DEBUG FUNCTIONS**
-window.debugGallery = {
-    async testBackend() {
-        try {
-            const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`);
-            const images = await response.json();
-            console.log('🔍 Backend test result:', images);
-            return images;
-        } catch (error) {
-            console.error('❌ Backend test failed:', error);
-            return null;
-        }
-    },
-    
-    testRender(sampleImages) {
-        const testImages = sampleImages || [
-            { filename: 'test1.jpg' },
-            { filename: 'test2.jpg' }
-        ];
-        console.log('🧪 Testing render with:', testImages);
-        renderImages(testImages, 'test');
-    },
-    
-    forceRefresh() {
-        clearImageCache();
-        loadGallery();
-    },
-    
-    checkElements() {
-        console.log('🔍 DOM Check:');
-        console.log('Gallery grid exists:', !!document.getElementById('galleryGrid'));
-        console.log('Gallery grid HTML:', document.getElementById('galleryGrid')?.innerHTML);
+// Track visitor when page loads
+window.addEventListener('load', function() {
+    // Don't track admin visits
+    if (!localStorage.getItem('isWarmDelightsAdmin')) {
+        trackEvent('page_visit', {
+            page: window.location.pathname,
+            referrer: document.referrer,
+            timestamp: new Date().toISOString()
+        });
     }
-};
+    
+    console.log('🚀 Warm Delights with Global Storage + Session Cache loaded');
+});
+
+// Debug function to check API connectivity
+async function checkAPIConnection() {
+    try {
+        console.log('🔗 Checking global storage connection...');
+        const response = await fetch(API_CONFIG.BACKEND_URL.replace('/api', '/'));
+        const data = await response.json();
+        console.log('✅ Global Storage Status:', data);
+        return true;
+    } catch (error) {
+        console.error('❌ Global storage connection failed:', error);
+        return false;
+    }
+}
 
 // Mobile menu toggle
 function toggleMenu() {
@@ -772,7 +717,6 @@ function loadTextMenu() {
 
 // Display menu items with minimum quantity controls
 function displayMenuItems(items) {
-    console.log("DISPLAY MENU ITEMS",items)
     const menuList = document.getElementById('menuItems');
     if (!menuList) return;
 
@@ -996,7 +940,8 @@ async function handleContactForm(event) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                mode: 'cors'
             });
 
             if (response.ok) {
@@ -1474,47 +1419,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Track visitor when page loads
-window.addEventListener('load', function() {
-    // Don't track admin visits
-    if (!localStorage.getItem('isWarmDelightsAdmin')) {
-        trackEvent('page_visit', {
-            page: window.location.pathname,
-            referrer: document.referrer,
-            timestamp: new Date().toISOString()
-        });
-    }
-    
-    console.log('🚀 Warm Delights with Global Storage + Session Cache loaded');
-});
-
-// Debug function to check API connectivity
-async function checkAPIConnection() {
-    try {
-        console.log('🔗 Checking global storage connection...');
-        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api`);
-        const data = await response.json();
-        console.log('✅ Global Storage Status:', data);
-        return true;
-    } catch (error) {
-        console.error('❌ Global storage connection failed:', error);
-        return false;
-    }
-}
-
-// **🔍 ENHANCED DEBUG FUNCTIONS**
+// **🔍 DEBUG FUNCTIONS**
 window.warmDelightsDebug = {
     checkGlobalStorage: checkAPIConnection,
     clearSessionCache: clearImageCache,
     refreshGallery: refreshGallery,
     viewSessionEvents: () => console.log(JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]')),
     viewLocalEvents: () => console.log(JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]')),
-    testNotification: (msg, type) => showNotification(msg || 'Test notification', type || 'success'),
-    
-    // Gallery specific debug tools
-    ...window.debugGallery
+    testNotification: (msg, type) => showNotification(msg || 'Test notification', type || 'success')
 };
 
 console.log('🎯 Warm Delights Debug Tools:', window.warmDelightsDebug);
-console.log('🛠️ Gallery Debug Tools:', window.debugGallery);
-console.log('✅ Warm Delights Frontend Loaded Successfully!');
