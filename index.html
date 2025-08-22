@@ -10,22 +10,88 @@
     <title>Warm Delights - Home Bakery</title>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+    /* Added global storage ribbon & connection indicator */
+    .global-storage-ribbon {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 10001;
+        background: linear-gradient(90deg,#e8a5b7,#d67b8a);
+        color: #fff;
+        padding: 6px 13px;
+        font-size: 12px;
+        border-radius: 10px 12px 10px 10px;
+        font-weight: bold;
+        box-shadow: 0 2px 6px rgba(232,165,183,0.08);
+        opacity: 0.93;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        pointer-events: none;
+    }
+    .connection-pill {
+        margin-left: 8px;
+        background: #4CAF50;
+        color: #fff;
+        border-radius: 8px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 500;
+        animation: pillPulse 2s infinite;
+    }
+    @keyframes pillPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    #globalStorageStatusDot {
+        display:inline-block;
+        width:10px; height:10px;
+        border-radius:50%; background:#4CAF50;
+        margin-right:5px;
+        vertical-align:middle;
+        box-shadow:0 0 0 0 #4CAF50;
+        animation:dotPulse 1.6s infinite cubic-bezier(.66,0,0,1);
+    }
+    @keyframes dotPulse {
+        0% { box-shadow:0 0 0 0 #4CAF5066; }
+        70% { box-shadow:0 0 0 7px #4CAF5000; }
+        100% { box-shadow:0 0 0 0 #4CAF5066; }
+    }
+    .connection-offline {
+        background: #f44336 !important;
+        color: white !important;
+    }
+    .dot-offline {
+        background: #f44336 !important;
+    }
+    @media (max-width:440px) {
+        .global-storage-ribbon {
+            left:0; right:0; top:0; border-radius:0 0 10px 10px; margin:0;
+            justify-content:center;
+        }
+    }
+    </style>
 </head>
 <body>
+    <div class="global-storage-ribbon" id="globalStorageRibbon">
+        <span id="globalStorageStatusDot"></span>
+        🌍 Universal Image Storage
+        <span id="globalStorageStatusTxt" class="connection-pill">Online</span>
+    </div>
+
     <!-- Header -->
     <header>
         <div class="container">
             <img src="Logo.png" alt="Warm Delights Logo" class="logo">
             <h1>Warm Delights</h1>
             <p class="tagline">Delivering Hugs Through Cakes</p>
-            
             <!-- Mobile Menu Toggle -->
             <div class="mobile-menu-toggle" onclick="toggleMenu()">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
-            
             <!-- Desktop Navigation -->
             <nav class="desktop-nav">
                 <a href="#home">Home</a>
@@ -39,7 +105,6 @@
                     🛒 Cart (<span id="cartCount">0</span>)
                 </button>
             </nav>
-            
             <!-- Mobile Navigation -->
             <nav id="mobileNav" class="mobile-nav">
                 <a href="#home" onclick="toggleMenu()">Home</a>
@@ -67,18 +132,16 @@
         <div class="container">
             <h2>Our Story</h2>
             <div class="story-content">
+                <!-- Story content unchanged -->
                 <p style="text-align: justify;">It all began during the COVID-19 lockdown, when online courses were becoming a trend. Out of curiosity, I signed up for a cupcake-making workshop, not realizing that it would be the starting point of my entrepreneurial journey. I was excited to learn something new and couldn't wait to try it myself.</p>
-
                 <p style="text-align: justify;">My first batch of cupcakes, however, didn't turn out well, and I felt disheartened. But thanks to my mom—my biggest supporter—I didn't give up. With her encouragement, I tried again, and this time I succeeded. That small win filled me with joy and gave me the confidence to keep going.</p>
-
                 <p style="text-align: justify;">Soon after, I baked my first perfect cake for a friend's birthday. It was the first time my creation was going to be shared beyond my home, and to my delight, the feedback was overwhelmingly positive. That moment became the spark that motivated me to start my own home bakery in 2022.</p>
-
                 <p style="text-align: justify;">Now, as we approach our third anniversary this September, I look back on a journey full of challenges, lessons, and growth. It hasn't always been easy, but it has taught me resilience and the importance of never giving up. Through it all, my mom has been my backbone—her constant support and belief in me continue to inspire everything I do.</p>
             </div>
         </div>
     </section>
 
-    <!-- UPDATED Menu Section - Text-Based with Minimum Quantities -->
+    <!-- Menu Section - Minimum Quantities -->
     <section id="menu" class="menu">
         <div class="container">
             <h2>Our Menu</h2>
@@ -103,11 +166,10 @@
         <div class="container">
             <h2>Our Gallery</h2>
             <div id="galleryGrid" class="gallery-grid">
-                <!-- Images will be loaded dynamically -->
+                <!-- Images will be loaded dynamically from global storage backend with session cache as fallback -->
             </div>
         </div>
     </section>
-
 
     <!-- Custom Order Section -->
     <section id="custom" class="custom-order">
@@ -117,7 +179,6 @@
                 <div class="custom-description">
                     <p>We're happy to bring your vision to life! Share a reference picture along with your preferences for size, flavour, and design, and we'll create a customised treat made just for you.</p>
                 </div>
-                
                 <div class="custom-form-container">
                     <form id="customOrderForm" class="custom-form">
                         <div class="input-group">
@@ -125,7 +186,6 @@
                             <input type="file" id="referenceImage" name="referenceImage" accept="image/*">
                             <small>Upload a reference image (Max 5MB)</small>
                         </div>
-
                         <div class="form-row">
                             <div class="input-group">
                                 <label for="customerName">Your Name *</label>
@@ -136,7 +196,6 @@
                                 <input type="tel" id="customerPhone" name="customerPhone" required>
                             </div>
                         </div>
-
                         <div class="form-row">
                             <div class="input-group">
                                 <label for="treatSize">Size *</label>
@@ -162,17 +221,14 @@
                                 </select>
                             </div>
                         </div>
-
                         <div class="input-group">
                             <label for="designNotes">Design Notes *</label>
                             <textarea id="designNotes" name="designNotes" rows="4" placeholder="Describe your design preferences, colors, theme, decorations, or any special requirements..." required></textarea>
                         </div>
-
                         <div class="input-group">
                             <label for="deliveryDate">Required Date</label>
                             <input type="date" id="deliveryDate" name="deliveryDate">
                         </div>
-
                         <button type="submit" class="button custom-submit-btn">Submit Custom Order Request</button>
                     </form>
                 </div>
@@ -304,13 +360,11 @@
             <span class="chatbot-icon">💬</span>
             <span class="chatbot-text">Chat with us!</span>
         </div>
-        
         <div id="chatbot-window" class="chatbot-window">
             <div class="chatbot-header">
                 <h4>🧁 Warm Delights Assistant</h4>
                 <button onclick="toggleChatbot()" class="chatbot-close">✖</button>
             </div>
-            
             <div class="chatbot-messages" id="chatbot-messages">
                 <div class="message bot-message">
                     <p>Hi! I'm here to help you with any questions about our delicious treats! 🎂</p>
@@ -322,7 +376,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="chatbot-input">
                 <input type="text" id="chatbot-input-field" placeholder="Ask me anything..." onkeypress="handleChatbotEnter(event)">
                 <button onclick="sendChatbotMessage()">Send</button>
@@ -342,7 +395,34 @@
         </div>
     </footer>
 
+    <!-- JS: Live global storage connection indicator and script.js -->
+    <script>
+    // Live connection indicator (auto detects backend health)
+    function updateGlobalStorageStatus(){
+        const dot = document.getElementById('globalStorageStatusDot');
+        const txt = document.getElementById('globalStorageStatusTxt');
+        fetch('https://warm-delights-backend-production.up.railway.app/health',{method:'GET'})
+        .then(r=>r.json())
+        .then(data=>{
+            dot.className=''; txt.className='connection-pill';
+            dot.style.background='#4CAF50';
+            txt.textContent='Online';
+        }).catch(_=>{
+            dot.className='dot-offline'; txt.className='connection-pill connection-offline';
+            dot.style.background='#f44336';
+            txt.textContent='Offline';
+        });
+    }
+    window.addEventListener('online',updateGlobalStorageStatus);
+    window.addEventListener('offline',()=>{
+        const dot = document.getElementById('globalStorageStatusDot');
+        const txt = document.getElementById('globalStorageStatusTxt');
+        dot.className='dot-offline'; txt.className='connection-pill connection-offline';
+        dot.style.background='#f44336';
+        txt.textContent='Offline';
+    });
+    document.addEventListener('DOMContentLoaded',()=>{ updateGlobalStorageStatus(); setInterval(updateGlobalStorageStatus,30*1000); });
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
-

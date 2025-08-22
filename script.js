@@ -1,5 +1,24 @@
-/* Warm Delights Frontend JavaScript - WITH ANALYTICS AND FIXED GALLERY */
-const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
+/* Warm Delights Frontend JavaScript - WITH GLOBAL STORAGE + SESSION CACHE */
+
+// **🌍 GLOBAL STORAGE + SESSION CACHE CONFIGURATION**
+const API_CONFIG = {
+    // Replace with your actual Railway backend URL
+    BACKEND_URL: window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000' 
+        : 'https://warm-delights-backend-production.up.railway.app',
+    
+    // Session cache configuration
+    CACHE_KEY: 'warmDelights_gallery_cache',
+    CACHE_EXPIRY_KEY: 'warmDelights_cache_expiry',
+    CACHE_DURATION: 15 * 60 * 1000, // 15 minutes
+    
+    // Fallback image paths for maximum compatibility
+    IMAGE_PATHS: [
+        '/uploads/',
+        '/api/uploads/',
+        '/images/'
+    ]
+};
 
 // Global variables
 let galleryImages = [];
@@ -27,26 +46,42 @@ const menuData = [
     { id: 11, name: 'Cheesecake Cupcakes', category: 'cupcakes', price: 55, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' }
 ];
 
-// ANALYTICS TRACKING FUNCTIONS
+// **📊 ENHANCED ANALYTICS TRACKING WITH SESSION STORAGE**
 function trackEvent(eventType, data = {}) {
-    const events = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
-    events.push({
+    // Store in session storage for current session
+    const sessionEvents = JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]');
+    sessionEvents.push({
         type: eventType,
         data: data,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent.substring(0, 100)
     });
     
-    // Keep only last 1000 events
-    if (events.length > 1000) {
-        events.splice(0, events.length - 1000);
+    // Keep only last 100 events in session
+    if (sessionEvents.length > 100) {
+        sessionEvents.splice(0, sessionEvents.length - 100);
     }
     
-    localStorage.setItem('warmDelightsEvents', JSON.stringify(events));
+    sessionStorage.setItem('warmDelightsEvents', JSON.stringify(sessionEvents));
 
-    // Also send to backend if available
+    // Also store in localStorage for persistence (limited)
+    const persistentEvents = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
+    persistentEvents.push({
+        type: eventType,
+        data: data,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Keep only last 500 persistent events
+    if (persistentEvents.length > 500) {
+        persistentEvents.splice(0, persistentEvents.length - 500);
+    }
+    
+    localStorage.setItem('warmDelightsEvents', JSON.stringify(persistentEvents));
+
+    // Send to global backend storage
     try {
-        fetch(`${API_BASE_URL}/analytics/track`, {
+        fetch(`${API_CONFIG.BACKEND_URL}/api/analytics/track`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -55,10 +90,355 @@ function trackEvent(eventType, data = {}) {
                 eventType: eventType,
                 data: data
             })
-        }).catch(() => {}); // Fail silently
+        }).catch(() => {
+            console.log('Analytics stored locally - backend offline');
+        });
     } catch (error) {
-        // Backend not available, continue with localStorage
+        console.log('Analytics stored in session/local storage');
     }
+}
+
+// **💾 SESSION CACHE MANAGEMENT**
+function getCachedImages() {
+    try {
+        const cached = sessionStorage.getItem(API_CONFIG.CACHE_KEY);
+        const expiry = sessionStorage.getItem(API_CONFIG.CACHE_EXPIRY_KEY);
+        
+        if (!cached || !expiry) return null;
+        
+        // Check if cache is expired
+        if (new Date().getTime() > parseInt(expiry)) {
+            console.log('⏰ Session cache expired, clearing...');
+            clearImageCache();
+            return null;
+        }
+        
+        const images = JSON.parse(cached);
+        console.log('⚡ Loading from session cache:', images.length, 'images');
+        return images;
+    } catch (error) {
+        console.error('Cache read error:', error);
+        clearImageCache();
+        return null;
+    }
+}
+
+function cacheImages(images) {
+    try {
+        const expiryTime = new Date().getTime() + API_CONFIG.CACHE_DURATION;
+        
+        sessionStorage.setItem(API_CONFIG.CACHE_KEY, JSON.stringify(images));
+        sessionStorage.setItem(API_CONFIG.CACHE_EXPIRY_KEY, expiryTime.toString());
+        
+        console.log('✅ Images cached in session storage for 15 minutes');
+    } catch (error) {
+        console.error('Cache write error:', error);
+    }
+}
+
+function clearImageCache() {
+    try {
+        sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+        sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+        console.log('🗑️ Session cache cleared');
+    } catch (error) {
+        console.error('Cache clear error:', error);
+    }
+}
+
+// **🖼️ ENHANCED IMAGE LOADING WITH GLOBAL STORAGE + SESSION CACHE**
+function createResponsiveImageElement(imageName) {
+    const galleryItem = document.createElement('div');
+    galleryItem.className = 'gallery-item';
+    
+    const img = document.createElement('img');
+    img.alt = 'Warm Delights Cake';
+    img.className = 'responsive-img';
+    img.loading = 'lazy';
+    
+    // Try multiple URLs for maximum compatibility
+    let currentUrlIndex = 0;
+    
+    function tryNextUrl() {
+        if (currentUrlIndex < API_CONFIG.IMAGE_PATHS.length) {
+            img.src = `${API_CONFIG.BACKEND_URL}${API_CONFIG.IMAGE_PATHS[currentUrlIndex]}${imageName}`;
+            currentUrlIndex++;
+        } else {
+            // All URLs failed, use placeholder
+            img.src = 'https://via.placeholder.com/300x200/f4c2c2/d67b8a?text=Warm+Delights';
+            img.alt = 'Image not available';
+        }
+    }
+    
+    img.onerror = function() {
+        console.log(`Image failed: ${this.src}, trying next...`);
+        tryNextUrl();
+    };
+    
+    img.onload = function() {
+        console.log(`✅ Image loaded successfully: ${this.src}`);
+        // Track image view
+        trackImageView(imageName);
+    };
+    
+    // Start with the first URL
+    tryNextUrl();
+    
+    // Add click handler for modal
+    img.onclick = () => openImageModal(img.src);
+    
+    galleryItem.appendChild(img);
+    return galleryItem;
+}
+
+// **🌍 LOAD GALLERY FROM GLOBAL STORAGE WITH SESSION CACHE**
+async function loadGallery() {
+    console.log('🖼️ Loading gallery with global storage + session cache...');
+    
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (!galleryGrid) {
+        console.log('Gallery grid not found');
+        return;
+    }
+
+    try {
+        // Step 1: Check session cache first
+        let images = getCachedImages();
+        if (images && images.length > 0) {
+            console.log('⚡ Using cached images:', images.length);
+            renderImages(images, 'session-cache');
+            return;
+        }
+
+        // Step 2: Show loading state
+        galleryGrid.innerHTML = `
+            <div class="gallery-loading" style="
+                text-align: center; 
+                padding: 60px 20px; 
+                color: var(--primary-pink);
+                grid-column: 1 / -1;
+                background: var(--light-pink);
+                border-radius: 15px;
+            ">
+                <div class="loading-spinner" style="
+                    border: 3px solid var(--secondary-pink);
+                    border-top: 3px solid var(--primary-pink);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 20px;
+                "></div>
+                <p>Loading from global storage...</p>
+            </div>
+        `;
+
+        // Step 3: Fetch from global backend storage
+        console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
+        
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        images = await response.json();
+        console.log(`✅ Loaded ${images.length} images from global storage`);
+
+        if (images.length > 0) {
+            // Cache the images in session storage
+            cacheImages(images);
+            
+            // Render images from global storage
+            renderImages(images, 'global-storage');
+            
+            // Track successful load
+            trackEvent('gallery_loaded', { 
+                imageCount: images.length, 
+                source: 'global-storage',
+                cached: false 
+            });
+            return;
+        }
+
+        // Step 4: Fallback to localStorage (admin uploaded images)
+        console.log('⚠️ No images in global storage, trying localStorage...');
+        const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+        
+        if (adminImages.length > 0) {
+            console.log('📱 Loading from localStorage:', adminImages.length, 'images');
+            
+            // Convert localStorage format to standard format
+            const localImages = adminImages.map(img => img.name || img.filename);
+            renderImages(localImages, 'localStorage');
+            
+            trackEvent('gallery_loaded', { 
+                imageCount: localImages.length, 
+                source: 'localStorage',
+                cached: false 
+            });
+            return;
+        }
+
+        // Step 5: No images available
+        showEmptyGallery();
+
+    } catch (error) {
+        console.error('❌ Gallery loading error:', error);
+        handleGalleryError(error);
+    }
+}
+
+// **🎨 RENDER IMAGES FUNCTION**
+function renderImages(images, source) {
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (!galleryGrid) return;
+    
+    galleryGrid.innerHTML = '';
+    
+    if (!images || images.length === 0) {
+        showEmptyGallery();
+        return;
+    }
+
+    // Create cache indicator
+    if (source === 'session-cache') {
+        const cacheIndicator = document.createElement('div');
+        cacheIndicator.className = 'cache-indicator';
+        cacheIndicator.textContent = '⚡ Loaded from cache';
+        cacheIndicator.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(cacheIndicator);
+        
+        setTimeout(() => {
+            if (document.body.contains(cacheIndicator)) {
+                cacheIndicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(cacheIndicator)) {
+                        document.body.removeChild(cacheIndicator);
+                    }
+                }, 300);
+            }
+        }, 2000);
+    }
+
+    images.forEach((imageName, index) => {
+        const imageItem = createResponsiveImageElement(imageName);
+        
+        // Add staggered animation
+        imageItem.style.animationDelay = `${index * 0.1}s`;
+        imageItem.style.animation = 'fadeInUp 0.5s ease forwards';
+        
+        galleryGrid.appendChild(imageItem);
+    });
+
+    console.log(`🖼️ Rendered ${images.length} images from ${source}`);
+}
+
+function showEmptyGallery() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    galleryGrid.innerHTML = `
+        <div class="gallery-placeholder" style="grid-column: 1 / -1;">
+            <h3>🎂 Our Delicious Creations</h3>
+            <p>Beautiful cake images will appear here soon!</p>
+            <div style="margin-top: 20px;">
+                <button onclick="refreshGallery()" style="
+                    padding: 12px 25px;
+                    background: var(--primary-pink);
+                    color: white;
+                    border: none;
+                    border-radius: 25px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    margin-right: 10px;
+                ">🔄 Refresh Gallery</button>
+                <a href="https://wa.me/918847306427?text=Hi! I'd like to see your latest cake designs" 
+                   style="
+                       display: inline-block;
+                       padding: 12px 25px;
+                       background: #25d366;
+                       color: white;
+                       text-decoration: none;
+                       border-radius: 25px;
+                       font-weight: 600;
+                   "
+                   target="_blank">💬 Contact us on WhatsApp</a>
+            </div>
+        </div>
+    `;
+}
+
+function handleGalleryError(error) {
+    const galleryGrid = document.getElementById('galleryGrid');
+    galleryGrid.innerHTML = `
+        <div class="gallery-error" style="
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 15px;
+            color: #721c24;
+        ">
+            <h3>⚠️ Gallery Temporarily Unavailable</h3>
+            <p>Connection to global storage failed. Please try again.</p>
+            <p style="font-size: 12px; color: #666;">Error: ${error.message}</p>
+            <button onclick="refreshGallery()" style="
+                margin-top: 10px; 
+                padding: 10px 20px; 
+                background: var(--primary-pink); 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer;
+            ">
+                🔄 Try Again
+            </button>
+        </div>
+    `;
+}
+
+// **🔄 REFRESH GALLERY FUNCTION**
+function refreshGallery() {
+    console.log('🔄 Refreshing gallery...');
+    clearImageCache(); // Clear session cache
+    loadGallery(); // Reload from global storage
+}
+
+// **👁️ TRACK IMAGE VIEW**
+function trackImageView(filename) {
+    if (!filename) return;
+    
+    // Track view in global storage
+    fetch(`${API_CONFIG.BACKEND_URL}/api/images/${filename}/view`, {
+        method: 'POST'
+    }).catch(() => {
+        console.log('Image view tracking stored locally');
+    });
+
+    // Track in analytics
+    trackEvent('image_view', {
+        filename: filename,
+        timestamp: new Date().toISOString()
+    });
 }
 
 // Track visitor when page loads
@@ -67,23 +447,24 @@ window.addEventListener('load', function() {
     if (!localStorage.getItem('isWarmDelightsAdmin')) {
         trackEvent('page_visit', {
             page: window.location.pathname,
-            referrer: document.referrer
+            referrer: document.referrer,
+            timestamp: new Date().toISOString()
         });
     }
     
-    console.log('🚀 Warm Delights website loaded');
+    console.log('🚀 Warm Delights with Global Storage + Session Cache loaded');
 });
 
 // Debug function to check API connectivity
 async function checkAPIConnection() {
     try {
-        console.log('🔗 Checking API connection...');
-        const response = await fetch(API_BASE_URL.replace('/api', '/'));
+        console.log('🔗 Checking global storage connection...');
+        const response = await fetch(API_CONFIG.BACKEND_URL.replace('/api', '/'));
         const data = await response.json();
-        console.log('✅ Backend Status:', data);
+        console.log('✅ Global Storage Status:', data);
         return true;
     } catch (error) {
-        console.error('❌ Backend connection failed:', error);
+        console.error('❌ Global storage connection failed:', error);
         return false;
     }
 }
@@ -135,12 +516,13 @@ function addToCartWithQuantity(item, itemId) {
         cart.push({ ...item, quantity: quantity });
     }
     
-    // TRACK CART ADDITION
+    // Track cart addition with enhanced data
     trackEvent('cart_add', {
         itemName: item.name,
         price: item.price,
         category: item.category,
-        quantity: quantity
+        quantity: quantity,
+        timestamp: new Date().toISOString()
     });
     
     updateCartUI();
@@ -152,7 +534,16 @@ function addToCartWithQuantity(item, itemId) {
 }
 
 function removeFromCart(itemId) {
+    const removedItem = cart.find(item => item.id === itemId);
     cart = cart.filter(item => item.id !== itemId);
+    
+    if (removedItem) {
+        trackEvent('cart_remove', {
+            itemName: removedItem.name,
+            quantity: removedItem.quantity
+        });
+    }
+    
     updateCartUI();
     updateCartCount();
 }
@@ -182,8 +573,14 @@ function updateQuantity(itemId, change) {
 
 function updateCartCount() {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    document.getElementById('cartCount').textContent = totalItems;
-    document.getElementById('mobileCartCount').textContent = totalItems;
+    const elements = ['cartCount', 'mobileCartCount'];
+    
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = totalItems;
+        }
+    });
 }
 
 function updateCartUI() {
@@ -191,10 +588,12 @@ function updateCartUI() {
     const cartTotal = document.getElementById('cartTotal');
     const checkoutBtn = document.getElementById('checkoutBtn');
     
+    if (!cartItems) return;
+    
     if (cart.length === 0) {
         cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
-        cartTotal.textContent = '0';
-        checkoutBtn.disabled = true;
+        if (cartTotal) cartTotal.textContent = '0';
+        if (checkoutBtn) checkoutBtn.disabled = true;
         return;
     }
     
@@ -222,21 +621,22 @@ function updateCartUI() {
         `;
     }).join('');
     
-    cartTotal.textContent = total;
-    checkoutBtn.disabled = false;
+    if (cartTotal) cartTotal.textContent = total;
+    if (checkoutBtn) checkoutBtn.disabled = false;
 }
 
 function checkout() {
     if (cart.length === 0) return;
     
-    // TRACK WHATSAPP ORDER
+    // Track WhatsApp order with enhanced data
     trackEvent('whatsapp_order', {
         items: cart.map(item => ({ 
             name: item.name, 
             quantity: item.quantity, 
             price: item.price 
         })),
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        timestamp: new Date().toISOString()
     });
     
     const orderSummary = cart.map(item => 
@@ -258,13 +658,21 @@ Please confirm the availability and delivery details.`;
     window.open(whatsappURL, '_blank');
 }
 
-function showNotification(message) {
+// Enhanced notification function
+function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
+    const colors = {
+        'success': 'var(--primary-pink)',
+        'error': '#ff4444',
+        'info': '#2196F3',
+        'warning': '#ff9800'
+    };
+    
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: var(--primary-pink);
+        background: ${colors[type] || colors.success};
         color: white;
         padding: 15px 20px;
         border-radius: 10px;
@@ -272,23 +680,32 @@ function showNotification(message) {
         z-index: 10000;
         font-weight: 600;
         animation: slideIn 0.3s ease-out;
+        max-width: 300px;
     `;
     notification.textContent = message;
     
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
+    // Add animation styles
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
-        notification.remove();
-        style.remove();
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
     }, 3000);
 }
 
@@ -339,158 +756,25 @@ function filterMenu(category) {
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 
     const filteredItems = category === 'all' 
         ? allMenuItems 
         : allMenuItems.filter(item => item.category.toLowerCase() === category);
     
     displayMenuItems(filteredItems);
+    
+    // Track menu filter
+    trackEvent('menu_filtered', {
+        category: category,
+        itemCount: filteredItems.length
+    });
 }
 
-// FIXED GALLERY FUNCTION - LOADS FROM BACKEND API WITH FALLBACKS
-async function loadGallery() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) return;
-
-    try {
-        // Show loading
-        galleryGrid.innerHTML = `
-            <div class="gallery-loading" style="
-                text-align: center; 
-                padding: 60px 20px; 
-                color: var(--primary-pink);
-                grid-column: 1 / -1;
-                background: var(--light-pink);
-                border-radius: 15px;
-            ">
-                <div style="
-                    display: inline-block; 
-                    width: 40px; 
-                    height: 40px; 
-                    border: 3px solid var(--secondary-pink); 
-                    border-top: 3px solid var(--primary-pink); 
-                    border-radius: 50%; 
-                    animation: spin 1s linear infinite;
-                    margin-bottom: 20px;
-                "></div>
-                <p>Loading our delicious gallery...</p>
-            </div>
-        `;
-
-        console.log('🔗 Loading gallery from API:', `${API_BASE_URL}/gallery`);
-        
-        // First try to load from backend API
-        try {
-            const response = await fetch(`${API_BASE_URL}/gallery`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                mode: 'cors'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Gallery data loaded from API:', data);
-                
-                if (data.images && data.images.length > 0) {
-                    // Display backend images
-                    galleryGrid.innerHTML = data.images.map((image, index) => `
-                        <div class="gallery-item">
-                            <img src="https://warm-delights-backend-production.up.railway.app${image.url}"
-                                 alt="${image.alt || 'Warm Delights Creation'}" 
-                                 onclick="openImageModal('${API_BASE_URL.replace('/api', '')}${image.url}')"
-                                 loading="lazy"
-                                 style="
-                                     width: 100%;
-                                     height: 100%;
-                                     object-fit: cover;
-                                     cursor: pointer;
-                                     display: block;
-                                     border-radius: 15px;
-                                     opacity: 0;
-                                     transition: all 0.3s ease;
-                                 "
-                                 onload="this.style.opacity='1';"
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-light); font-size: 12px; text-align: center;\\'>Image<br>Not Available</div>';">
-                        </div>
-                    `).join('');
-                    
-                    // Track gallery view
-                    trackEvent('gallery_viewed', { imageCount: data.images.length, source: 'backend' });
-                    return;
-                }
-            }
-        } catch (apiError) {
-            console.log('⚠️ API not available, trying localStorage...', apiError);
-        }
-
-        // Fallback: Load from localStorage (admin uploaded images)
-        const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-        
-        if (adminImages.length > 0) {
-            console.log('✅ Loading from localStorage:', adminImages.length, 'images');
-            galleryGrid.innerHTML = adminImages.map((image, index) => `
-                <div class="gallery-item">
-                    <img src="${image.data}" 
-                         alt="${image.name}" 
-                         onclick="openImageModal('${image.data}')"
-                         loading="lazy"
-                         style="
-                             width: 100%;
-                             height: 100%;
-                             object-fit: cover;
-                             cursor: pointer;
-                             display: block;
-                             border-radius: 15px;
-                             opacity: 0;
-                             transition: all 0.3s ease;
-                         "
-                         onload="this.style.opacity='1';"
-                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-light); font-size: 12px; text-align: center;\\'>Image<br>Not Available</div>';">
-                </div>
-            `).join('');
-            
-            // Track gallery view
-            trackEvent('gallery_viewed', { imageCount: adminImages.length, source: 'localStorage' });
-            return;
-        }
-
-        // No images available
-        galleryGrid.innerHTML = `
-            <div class="gallery-placeholder">
-                <h3>🎂 Our Delicious Creations</h3>
-                <p>Gallery images will appear here soon! Contact us to see our latest treats.</p>
-                <div style="margin-top: 20px;">
-                    <a href="https://wa.me/918847306427?text=Hi! I'd like to see your latest cake designs" 
-                       style="
-                           display: inline-block;
-                           padding: 12px 25px;
-                           background: #25d366;
-                           color: white;
-                           text-decoration: none;
-                           border-radius: 25px;
-                           font-weight: 600;
-                       "
-                       target="_blank">💬 Contact us on WhatsApp</a>
-                </div>
-            </div>
-        `;
-
-    } catch (error) {
-        console.error('❌ Gallery loading error:', error);
-        galleryGrid.innerHTML = `
-            <div class="gallery-placeholder">
-                <h3>🎂 Our Delicious Creations</h3>
-                <p>Gallery will be available soon!</p>
-            </div>
-        `;
-    }
-}
-
-// Image modal function
+// Image modal function with enhanced features
 function openImageModal(imageUrl) {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -499,13 +783,14 @@ function openImageModal(imageUrl) {
         left: 0; 
         width: 100%; 
         height: 100%;
-        background: rgba(0,0,0,0.8); 
+        background: rgba(0,0,0,0.9); 
         display: flex; 
         justify-content: center;
         align-items: center; 
         z-index: 10000; 
         cursor: pointer;
         padding: 20px;
+        animation: fadeIn 0.3s ease;
     `;
     
     const img = document.createElement('img');
@@ -515,56 +800,56 @@ function openImageModal(imageUrl) {
         max-height: 90%; 
         border-radius: 10px;
         object-fit: contain;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    `;
+    
+    const closeBtn = document.createElement('div');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+        z-index: 10001;
     `;
     
     modal.appendChild(img);
+    modal.appendChild(closeBtn);
     document.body.appendChild(modal);
     
-    modal.onclick = () => document.body.removeChild(modal);
+    // Close modal handlers
+    const closeModal = () => {
+        modal.style.animation = 'fadeIn 0.3s ease reverse';
+        setTimeout(() => {
+            if (document.body.contains(modal)) {
+                document.body.removeChild(modal);
+            }
+        }, 300);
+    };
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+    };
+    closeBtn.onclick = closeModal;
     
     // Handle escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape' && document.body.contains(modal)) {
-            document.body.removeChild(modal);
+            closeModal();
             document.removeEventListener('keydown', handleEscape);
         }
     };
     document.addEventListener('keydown', handleEscape);
+    
+    // Track image modal open
+    trackEvent('image_modal_opened', {
+        imageUrl: imageUrl
+    });
 }
 
 // Custom order form handling
-document.addEventListener('DOMContentLoaded', function() {
-    const customForm = document.getElementById('customOrderForm');
-    const contactForm = document.getElementById('contactForm');
-    
-    if (customForm) {
-        customForm.addEventListener('submit', handleCustomOrder);
-    }
-    
-    if (contactForm) {
-        contactForm.addEventListener('submit', handleContactForm);
-    }
-    
-    // File size validation
-    const fileInput = document.getElementById('referenceImage');
-    if (fileInput) {
-        fileInput.addEventListener('change', validateFileSize);
-    }
-    
-    // Load initial data
-    loadTextMenu();
-    loadGallery();
-    updateCartCount();
-});
-
-function validateFileSize(event) {
-    const file = event.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) { // 5MB
-        alert('File size must be less than 5MB');
-        event.target.value = '';
-    }
-}
-
 async function handleCustomOrder(event) {
     event.preventDefault();
     
@@ -584,11 +869,12 @@ async function handleCustomOrder(event) {
         const designNotes = formData.get('designNotes');
         const deliveryDate = formData.get('deliveryDate');
         
-        // TRACK CUSTOM ORDER
+        // Track custom order
         trackEvent('custom_order', {
             customerName: customerName,
             size: treatSize,
-            flavour: treatFlavour
+            flavour: treatFlavour,
+            timestamp: new Date().toISOString()
         });
         
         const whatsappMessage = `Hi! I'd like to place a custom order from Warm Delights:
@@ -611,17 +897,17 @@ Please confirm availability and pricing.`;
         
         // Reset form
         event.target.reset();
-        alert('Custom order request sent via WhatsApp! We will contact you soon.');
+        showNotification('Custom order request sent via WhatsApp! We will contact you soon.', 'success');
         
     } catch (error) {
-        alert('Failed to submit custom order. Please try again.');
+        showNotification('Failed to submit custom order. Please try again.', 'error');
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     }
 }
 
-// Enhanced contact form handling
+// Enhanced contact form handling with global storage
 async function handleContactForm(event) {
     event.preventDefault();
     
@@ -639,16 +925,17 @@ async function handleContactForm(event) {
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
 
-        // TRACK CONTACT SUBMISSION
+        // Track contact submission
         trackEvent('contact_submit', {
-            name: formData.name
+            name: formData.name,
+            timestamp: new Date().toISOString()
         });
         
-        console.log('📧 Sending contact form to:', `${API_BASE_URL}/contact`);
+        console.log('📧 Sending contact form to global storage:', `${API_CONFIG.BACKEND_URL}/api/contact`);
 
-        // Try to send to API, but don't fail if it doesn't work
+        // Send to global storage backend
         try {
-            const response = await fetch(`${API_BASE_URL}/contact`, {
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/contact`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -660,22 +947,22 @@ async function handleContactForm(event) {
             if (response.ok) {
                 const result = await response.json();
                 if (result.success) {
-                    alert('Message sent successfully! We\'ll get back to you soon.');
+                    showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
                     event.target.reset();
                     return;
                 }
             }
         } catch (apiError) {
-            console.log('API not available, showing success message anyway');
+            console.log('Global storage not available, showing success message anyway');
         }
         
         // Always show success to user (message is tracked for admin)
-        alert('Message sent successfully! We\'ll get back to you soon.');
+        showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
         event.target.reset();
 
     } catch (error) {
         console.error('❌ Contact form error:', error);
-        alert('Message received! We\'ll get back to you soon.');
+        showNotification('Message received! We\'ll get back to you soon.', 'success');
         event.target.reset();
     } finally {
         submitBtn.textContent = originalText;
@@ -683,7 +970,16 @@ async function handleContactForm(event) {
     }
 }
 
-// CHATBOT FUNCTIONALITY
+// File size validation
+function validateFileSize(event) {
+    const file = event.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) { // 5MB
+        showNotification('File size must be less than 5MB', 'error');
+        event.target.value = '';
+    }
+}
+
+// **🤖 ENHANCED CHATBOT WITH GLOBAL STORAGE INTEGRATION**
 let chatbotOpen = false;
 
 function toggleChatbot() {
@@ -695,6 +991,11 @@ function toggleChatbot() {
     if (chatbotOpen) {
         chatbotWindow.classList.add('active');
         chatbotToggle.style.display = 'none';
+        
+        // Track chatbot open
+        trackEvent('chatbot_opened', {
+            timestamp: new Date().toISOString()
+        });
     } else {
         chatbotWindow.classList.remove('active');
         chatbotToggle.style.display = 'flex';
@@ -729,6 +1030,12 @@ function handleQuickResponse(type) {
             lastMessage.appendChild(whatsappBtn);
         }, 500);
     }
+
+    // Track quick response
+    trackEvent('chatbot_quick_response', {
+        type: type,
+        timestamp: new Date().toISOString()
+    });
 }
 
 function addMenuCategories() {
@@ -859,7 +1166,7 @@ function showCategoryItems(category) {
     
     messageDiv.appendChild(itemsContainer);
     
-    // Add "Add to Cart" and "Back to Categories" buttons
+    // Add action buttons
     const actionButtons = document.createElement('div');
     actionButtons.className = 'quick-buttons';
     actionButtons.style.marginTop = '15px';
@@ -920,6 +1227,12 @@ function showCategoryItems(category) {
     
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Track category view
+    trackEvent('chatbot_category_viewed', {
+        category: category,
+        timestamp: new Date().toISOString()
+    });
 }
 
 function handleChatbotEnter(event) {
@@ -994,10 +1307,11 @@ function generateChatbotResponse(message) {
 function addMessage(text, sender) {
     if (text === '') return;
     
-    // TRACK CHATBOT INTERACTION
+    // Track chatbot interaction
     if (sender === 'user') {
         trackEvent('chat_message', {
-            message: text.substring(0, 100) // Only store first 100 chars for privacy
+            message: text.substring(0, 100), // Only store first 100 chars for privacy
+            timestamp: new Date().toISOString()
         });
     }
     
@@ -1012,6 +1326,71 @@ function addMessage(text, sender) {
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
+
+// **🚀 INITIALIZATION WITH GLOBAL STORAGE**
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing Warm Delights with Global Storage + Session Cache');
+    
+    // Initialize forms
+    const customForm = document.getElementById('customOrderForm');
+    const contactForm = document.getElementById('contactForm');
+    
+    if (customForm) {
+        customForm.addEventListener('submit', handleCustomOrder);
+    }
+    
+    if (contactForm) {
+        contactForm.addEventListener('submit', handleContactForm);
+    }
+    
+    // File size validation
+    const fileInput = document.getElementById('referenceImage');
+    if (fileInput) {
+        fileInput.addEventListener('change', validateFileSize);
+    }
+    
+    // Load initial data
+    loadTextMenu();
+    loadGallery(); // Load from global storage with session cache
+    updateCartCount();
+    
+    // Auto-refresh gallery every 30 minutes
+    setInterval(() => {
+        console.log('🔄 Auto-refreshing gallery from global storage...');
+        refreshGallery();
+    }, 30 * 60 * 1000);
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .gallery-item {
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+    `;
+    document.head.appendChild(style);
+});
 
 // Smooth scrolling for navigation links
 document.addEventListener('DOMContentLoaded', function() {
@@ -1029,7 +1408,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     behavior: 'smooth',
                     block: 'start'
                 });
+                
+                // Track navigation
+                trackEvent('navigation_clicked', {
+                    target: targetId,
+                    timestamp: new Date().toISOString()
+                });
             }
         });
     });
 });
+
+// **🔍 DEBUG FUNCTIONS**
+window.warmDelightsDebug = {
+    checkGlobalStorage: checkAPIConnection,
+    clearSessionCache: clearImageCache,
+    refreshGallery: refreshGallery,
+    viewSessionEvents: () => console.log(JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]')),
+    viewLocalEvents: () => console.log(JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]')),
+    testNotification: (msg, type) => showNotification(msg || 'Test notification', type || 'success')
+};
+
+console.log('🎯 Warm Delights Debug Tools:', window.warmDelightsDebug);

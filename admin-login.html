@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Management Portal - Warm Delights</title>
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Global Management Portal - Warm Delights</title>
     <style>
         * {
             margin: 0;
@@ -11,125 +15,335 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --primary-pink: #e8a5b7;
+            --secondary-pink: #f4c2c2;
+            --light-pink: #fdf2f8;
+            --dark-pink: #d67b8a;
+            --text-dark: #4a2e38;
+            --text-light: #6b4e57;
+            --white: #ffffff;
+            --success: #4CAF50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --info: #2196F3;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            animation: backgroundMove 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes backgroundMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-20px, -20px) rotate(1deg); }
+            66% { transform: translate(20px, -10px) rotate(-1deg); }
         }
         
         .admin-login-container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background: var(--white);
+            padding: 50px;
+            border-radius: 25px;
+            box-shadow: var(--shadow-lg);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             text-align: center;
             position: relative;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .admin-login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-pink), var(--dark-pink));
+            border-radius: 25px 25px 0 0;
+        }
+        
+        .global-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
         }
         
         .admin-login-container h2 {
-            color: #e8a5b7;
+            color: var(--primary-pink);
             margin-bottom: 10px;
-            font-size: 2rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .admin-login-container .subtitle {
-            color: #6b4e57;
-            margin-bottom: 30px;
-            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 40px;
+            font-size: 1rem;
+            font-weight: 500;
         }
         
-        .admin-login-container input {
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group input {
             width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 2px solid #f4c2c2;
-            border-radius: 10px;
+            padding: 18px 20px;
+            border: 2px solid var(--secondary-pink);
+            border-radius: 15px;
             font-size: 16px;
-            transition: border-color 0.3s ease;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: var(--white);
+            color: var(--text-dark);
         }
         
-        .admin-login-container input:focus {
+        .input-group input:focus {
             outline: none;
-            border-color: #e8a5b7;
-            box-shadow: 0 0 0 3px rgba(232, 165, 183, 0.1);
+            border-color: var(--primary-pink);
+            box-shadow: 0 0 0 4px rgba(232, 165, 183, 0.15);
+            transform: translateY(-2px);
         }
         
-        .admin-login-container button {
+        .input-group input::placeholder {
+            color: var(--text-light);
+            font-weight: 400;
+        }
+        
+        .input-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 18px;
+            pointer-events: none;
+        }
+        
+        .login-btn {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #e8a5b7, #d67b8a);
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 15px;
             font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: 600;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
         
-        .admin-login-container button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(232, 165, 183, 0.4);
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
         
-        .admin-login-container button:disabled {
+        .login-btn:hover::before {
+            left: 100%;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(232, 165, 183, 0.4);
+        }
+        
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .login-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
+        }
+        
+        .login-btn:disabled::before {
+            display: none;
+        }
+        
+        .message {
+            min-height: 25px;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
         }
         
         .error-message {
-            color: #ff4444;
-            margin-top: 15px;
-            font-size: 14px;
-            min-height: 20px;
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
         }
         
-        .security-note {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(232, 165, 183, 0.1);
-            border-radius: 10px;
-            font-size: 12px;
-            color: #6b4e57;
-            line-height: 1.4;
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #c8e6c9;
+        }
+        
+        .warning-message {
+            background: #fff8e1;
+            color: #ef6c00;
+            border: 2px solid #ffecb3;
+        }
+        
+        .info-message {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 2px solid #bbdefb;
         }
         
         .attempts-warning {
-            background: #ffe6e6;
-            color: #cc0000;
-            padding: 10px;
-            border-radius: 10px;
-            margin-top: 15px;
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .security-note {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(232, 165, 183, 0.1), rgba(214, 123, 138, 0.1));
+            border: 1px solid var(--secondary-pink);
+            border-radius: 15px;
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.6;
+            text-align: left;
+        }
+        
+        .security-note strong {
+            color: var(--primary-pink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
             font-size: 14px;
         }
         
-        .loading {
+        .features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+        }
+        
+        .loading-overlay {
             display: none;
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.show {
+            display: flex;
         }
         
         .spinner {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #f4c2c2;
-            border-top: 3px solid #e8a5b7;
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--secondary-pink);
+            border-top: 4px solid var(--primary-pink);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            color: var(--primary-pink);
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .loading-steps {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--text-light);
+            text-align: center;
         }
         
         @keyframes spin {
@@ -137,159 +351,468 @@
             100% { transform: rotate(360deg); }
         }
         
-        @media (max-width: 480px) {
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: connectionPulse 2s infinite;
+        }
+        
+        .connection-dot.offline {
+            background: var(--error);
+            animation: none;
+        }
+        
+        @keyframes connectionPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Enhanced Responsive Design */
+        @media (max-width: 768px) {
             .admin-login-container {
-                margin: 20px;
-                padding: 30px 25px;
+                margin: 15px;
+                padding: 35px 30px;
+                max-width: 400px;
             }
             
             .admin-login-container h2 {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
+            }
+            
+            .connection-status {
+                top: 15px;
+                right: 15px;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .admin-login-container {
+                padding: 30px 25px;
+                margin: 10px;
+            }
+            
+            .admin-login-container h2 {
+                font-size: 1.6rem;
+            }
+            
+            .admin-login-container .subtitle {
+                font-size: 0.9rem;
+            }
+            
+            .input-group input {
+                padding: 16px 18px;
+                font-size: 15px;
+            }
+            
+            .login-btn {
+                padding: 16px;
+                font-size: 15px;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --white: #1a1a1a;
+                --text-dark: #ffffff;
+                --text-light: #cccccc;
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .admin-login-container {
+                border: 3px solid var(--primary-pink);
+            }
+            
+            .input-group input {
+                border-width: 3px;
+            }
+        }
+        
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Connection Status Indicator -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="connection-dot" id="connectionDot"></div>
+        <span id="connectionText">Connected</span>
+    </div>
+
     <div class="admin-login-container">
+        <!-- Global Storage Indicator -->
+        <div class="global-indicator">
+            🌍 Global Storage Portal
+        </div>
+
         <h2>🔐 Management Portal</h2>
-        <p class="subtitle">Warm Delights Admin Access</p>
+        <p class="subtitle">Warm Delights Global Admin Access</p>
         
-        <form id="adminLoginForm">
-            <input type="text" id="adminUsername" placeholder="Access ID" required autocomplete="username">
-            <input type="password" id="adminPassword" placeholder="Security Key" required autocomplete="current-password">
-            <button type="submit" id="loginBtn">Authenticate</button>
+        <form id="adminLoginForm" class="login-form">
+            <div class="input-group">
+                <input type="text" 
+                       id="adminUsername" 
+                       placeholder="Admin Access ID" 
+                       required 
+                       autocomplete="username"
+                       maxlength="50">
+                <div class="input-icon">👤</div>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" 
+                       id="adminPassword" 
+                       placeholder="Security Key" 
+                       required 
+                       autocomplete="current-password"
+                       maxlength="100">
+                <div class="input-icon">🔑</div>
+            </div>
+            
+            <button type="submit" id="loginBtn" class="login-btn">
+                🚀 Authenticate & Access Global Storage
+            </button>
         </form>
         
-        <div id="loginError" class="error-message"></div>
-        <div id="attemptsWarning" class="attempts-warning" style="display: none;"></div>
+        <div id="loginMessage" class="message"></div>
         
         <div class="security-note">
-            <strong>🛡️ Secure Access Only</strong><br>
-            This portal is protected and monitored. Only authorized personnel may access this system.
+            <strong>🛡️ Enhanced Security Features</strong>
+            <div class="features-list">
+                <div class="feature-item">
+                    <span>🌍</span>
+                    <span>Global Storage Integration</span>
+                </div>
+                <div class="feature-item">
+                    <span>🔒</span>
+                    <span>Multi-layer Authentication</span>
+                </div>
+                <div class="feature-item">
+                    <span>📊</span>
+                    <span>Real-time Analytics & Monitoring</span>
+                </div>
+                <div class="feature-item">
+                    <span>⚡</span>
+                    <span>Session Caching & Optimization</span>
+                </div>
+                <div class="feature-item">
+                    <span>🔐</span>
+                    <span>Brute Force Protection</span>
+                </div>
+            </div>
+            <br>
+            <small>This portal provides secure access to the global storage management system. All activities are logged and monitored for security purposes.</small>
         </div>
         
-        <div id="loadingOverlay" class="loading">
+        <div id="loadingOverlay" class="loading-overlay">
             <div class="spinner"></div>
-            <p>Authenticating...</p>
+            <div class="loading-text">Authenticating...</div>
+            <div class="loading-steps">
+                <div id="loadingStep">🔐 Validating credentials...</div>
+            </div>
         </div>
     </div>
     
     <script>
-        // Security Configuration
-        const MAX_ATTEMPTS = 5;
-        const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
-        const ATTEMPT_RESET_TIME = 60 * 60 * 1000; // 1 hour
-        
-        // Enhanced hash function for better security
-        function secureHash(str) {
+        // **🌍 GLOBAL STORAGE AUTHENTICATION CONFIGURATION**
+        const AUTH_CONFIG = {
+            // Replace with your actual Railway backend URL
+            BACKEND_URL: window.location.hostname === 'localhost' 
+                ? 'http://localhost:5000' 
+                : 'https://warm-delights-backend-production.up.railway.app',
+            
+            // Security settings
+            MAX_ATTEMPTS: 5,
+            LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
+            ATTEMPT_RESET_TIME: 60 * 60 * 1000, // 1 hour
+            SESSION_DURATION: 2 * 60 * 60 * 1000, // 2 hours
+            
+            // Authentication delay to prevent brute force
+            AUTH_DELAY: 1500
+        };
+
+        // **🔐 ENHANCED SECURITY FUNCTIONS**
+        function secureHash(str, salt = 'warmdelights2025') {
             let hash = 5381;
-            for (let i = 0; i < str.length; i++) {
-                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            const combined = str + salt;
+            for (let i = 0; i < combined.length; i++) {
+                hash = ((hash << 5) + hash) + combined.charCodeAt(i);
             }
             return Math.abs(hash).toString(36);
         }
-        
-        // Generate additional entropy
-        function addEntropy(str) {
-            const salt = "warmdelights2025"; // Salt for additional security
-            return secureHash(str + salt);
+
+        function generateSessionToken() {
+            const timestamp = new Date().getTime();
+            const random = Math.random().toString(36).substring(2);
+            return secureHash(`${timestamp}_${random}`);
         }
-        
-        // Check if user is locked out
+
+        // **🚨 BRUTE FORCE PROTECTION**
         function isLockedOut() {
             const lockoutData = JSON.parse(localStorage.getItem('adminLockout') || '{}');
             if (lockoutData.lockedUntil && new Date().getTime() < lockoutData.lockedUntil) {
-                return true;
+                return lockoutData;
             }
             return false;
         }
-        
-        // Get failed attempts count
+
         function getFailedAttempts() {
             const attemptData = JSON.parse(localStorage.getItem('adminAttempts') || '{}');
             const now = new Date().getTime();
             
-            // Reset attempts if more than 1 hour has passed
-            if (attemptData.lastAttempt && (now - attemptData.lastAttempt) > ATTEMPT_RESET_TIME) {
+            if (attemptData.lastAttempt && (now - attemptData.lastAttempt) > AUTH_CONFIG.ATTEMPT_RESET_TIME) {
                 localStorage.removeItem('adminAttempts');
                 return 0;
             }
             
             return attemptData.count || 0;
         }
-        
-        // Record failed attempt
+
         function recordFailedAttempt() {
             const attemptData = {
                 count: getFailedAttempts() + 1,
-                lastAttempt: new Date().getTime()
+                lastAttempt: new Date().getTime(),
+                ip: 'protected'
             };
             
             localStorage.setItem('adminAttempts', JSON.stringify(attemptData));
             
-            if (attemptData.count >= MAX_ATTEMPTS) {
+            if (attemptData.count >= AUTH_CONFIG.MAX_ATTEMPTS) {
                 const lockoutData = {
-                    lockedUntil: new Date().getTime() + LOCKOUT_DURATION,
-                    reason: 'Too many failed attempts'
+                    lockedUntil: new Date().getTime() + AUTH_CONFIG.LOCKOUT_DURATION,
+                    reason: 'Too many failed attempts',
+                    timestamp: new Date().toISOString()
                 };
                 localStorage.setItem('adminLockout', JSON.stringify(lockoutData));
             }
             
             return attemptData.count;
         }
-        
-        // Clear failed attempts on successful login
+
         function clearFailedAttempts() {
             localStorage.removeItem('adminAttempts');
             localStorage.removeItem('adminLockout');
         }
-        
-        // Show loading state
-        function showLoading(show) {
-            document.getElementById('loadingOverlay').style.display = show ? 'block' : 'none';
-            document.getElementById('loginBtn').disabled = show;
-        }
-        
-        // Display error message
-        function showError(message) {
-            document.getElementById('loginError').textContent = message;
-            setTimeout(() => {
-                document.getElementById('loginError').textContent = '';
-            }, 5000);
-        }
-        
-        // Check lockout status on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            if (isLockedOut()) {
-                const lockoutData = JSON.parse(localStorage.getItem('adminLockout'));
-                const remainingTime = Math.ceil((lockoutData.lockedUntil - new Date().getTime()) / 60000);
-                
-                document.getElementById('attemptsWarning').style.display = 'block';
-                document.getElementById('attemptsWarning').textContent = 
-                    `🔒 Access temporarily restricted. Try again in ${remainingTime} minutes.`;
-                document.getElementById('loginBtn').disabled = true;
-                
-                // Auto-enable after lockout period
-                setTimeout(() => {
-                    location.reload();
-                }, (lockoutData.lockedUntil - new Date().getTime()));
-            }
+
+        // **📱 UI MANAGEMENT FUNCTIONS**
+        function showMessage(message, type = 'info', duration = 5000) {
+            const messageEl = document.getElementById('loginMessage');
+            const icons = {
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'info': 'ℹ️'
+            };
             
-            // Show attempts warning if user has failed attempts
-            const failedAttempts = getFailedAttempts();
-            if (failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS) {
-                document.getElementById('attemptsWarning').style.display = 'block';
-                document.getElementById('attemptsWarning').textContent = 
-                    `⚠️ ${failedAttempts}/${MAX_ATTEMPTS} failed attempts. Account will be locked after ${MAX_ATTEMPTS} attempts.`;
+            messageEl.className = `message ${type}-message`;
+            messageEl.innerHTML = `${icons[type]} ${message}`;
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    messageEl.className = 'message';
+                    messageEl.innerHTML = '';
+                }, duration);
             }
-        });
-        
-        // Enhanced login form handler
-        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+        }
+
+        function showLoading(show, step = 'Authenticating...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const stepEl = document.getElementById('loadingStep');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (show) {
+                overlay.classList.add('show');
+                stepEl.textContent = step;
+                loginBtn.disabled = true;
+            } else {
+                overlay.classList.remove('show');
+                loginBtn.disabled = false;
+            }
+        }
+
+        // **🌐 CONNECTION MONITORING**
+        function updateConnectionStatus() {
+            const dot = document.getElementById('connectionDot');
+            const text = document.getElementById('connectionText');
+            
+            if (navigator.onLine) {
+                dot.className = 'connection-dot';
+                text.textContent = 'Connected';
+                
+                // Test backend connection
+                fetch(AUTH_CONFIG.BACKEND_URL + '/health', { 
+                    method: 'GET',
+                    signal: AbortSignal.timeout(5000)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        dot.className = 'connection-dot';
+                        text.textContent = 'Global Storage Ready';
+                    } else {
+                        throw new Error('Backend unavailable');
+                    }
+                })
+                .catch(() => {
+                    dot.className = 'connection-dot offline';
+                    text.textContent = 'Local Mode';
+                });
+            } else {
+                dot.className = 'connection-dot offline';
+                text.textContent = 'Offline';
+            }
+        }
+
+        // **🔓 ENHANCED AUTHENTICATION WITH GLOBAL STORAGE**
+        async function authenticateUser(username, password) {
+            // Step 1: Update loading step
+            showLoading(true, '🔐 Validating credentials...');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            try {
+                // Step 2: Try backend authentication first
+                showLoading(true, '🌍 Connecting to global storage...');
+                
+                const response = await fetch(AUTH_CONFIG.BACKEND_URL + '/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    }),
+                    signal: AbortSignal.timeout(10000)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showLoading(true, '✅ Authentication successful!');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Store authentication data
+                        localStorage.setItem('isWarmDelightsAdmin', 'true');
+                        localStorage.setItem('adminSession', result.token || generateSessionToken());
+                        localStorage.setItem('adminLoginTime', new Date().toISOString());
+                        localStorage.setItem('globalStorageAuth', 'true');
+                        
+                        // Track successful login
+                        const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
+                        loginData.push({
+                            timestamp: new Date().toISOString(),
+                            method: 'global-storage',
+                            userAgent: navigator.userAgent.substring(0, 100)
+                        });
+                        
+                        if (loginData.length > 10) {
+                            loginData.splice(0, loginData.length - 10);
+                        }
+                        localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
+                        
+                        clearFailedAttempts();
+                        showLoading(true, '🚀 Redirecting to global dashboard...');
+                        
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        window.location.href = 'admin-dashboard.html';
+                        return true;
+                    }
+                }
+                
+                // Backend authentication failed, try fallback
+                throw new Error('Backend authentication failed');
+                
+            } catch (error) {
+                console.log('Global storage authentication unavailable, trying fallback...');
+                
+                // Step 3: Fallback authentication
+                showLoading(true, '📱 Using local authentication...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Secure credential verification (fallback)
+                const validUserHash = secureHash('warmdelights_admin');
+                const validPassHash = secureHash('SecurePass@2025!');
+                
+                const inputUserHash = secureHash(username);
+                const inputPassHash = secureHash(password);
+                
+                if (inputUserHash === validUserHash && inputPassHash === validPassHash) {
+                    showLoading(true, '✅ Local authentication successful!');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Store local authentication data
+                    localStorage.setItem('isWarmDelightsAdmin', 'true');
+                    localStorage.setItem('adminSession', generateSessionToken());
+                    localStorage.setItem('adminLoginTime', new Date().toISOString());
+                    localStorage.setItem('localAuth', 'true');
+                    
+                    // Track local login
+                    const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
+                    loginData.push({
+                        timestamp: new Date().toISOString(),
+                        method: 'local-fallback',
+                        userAgent: navigator.userAgent.substring(0, 100)
+                    });
+                    
+                    if (loginData.length > 10) {
+                        loginData.splice(0, loginData.length - 10);
+                    }
+                    localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
+                    
+                    clearFailedAttempts();
+                    showLoading(true, '🚀 Redirecting to dashboard...');
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    window.location.href = 'admin-dashboard.html';
+                    return true;
+                } else {
+                    throw new Error('Invalid credentials');
+                }
+            }
+        }
+
+        // **📋 FORM HANDLING**
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            if (isLockedOut()) {
-                showError('Account temporarily locked. Please wait.');
+            const lockout = isLockedOut();
+            if (lockout) {
+                const remainingTime = Math.ceil((lockout.lockedUntil - new Date().getTime()) / 60000);
+                showMessage(`Account locked for ${remainingTime} more minutes`, 'error');
                 return;
             }
             
@@ -297,83 +820,79 @@
             const password = document.getElementById('adminPassword').value;
             
             if (!username || !password) {
-                showError('Please enter both Access ID and Security Key');
+                showMessage('Please enter both Access ID and Security Key', 'warning');
                 return;
             }
             
-            showLoading(true);
-            
-            // Simulate authentication delay for security
-            setTimeout(() => {
-                try {
-                    // Secure credential verification
-                    // These are hashed versions of: username="warmdelights_admin", password="SecurePass@2025!"
-                    const validUserHash = addEntropy('warmdelights_admin'); // Hash of username
-                    const validPassHash = addEntropy('SecurePass@2025!');   // Hash of password
+            try {
+                await authenticateUser(username, password);
+                
+            } catch (error) {
+                showLoading(false);
+                
+                const attemptCount = recordFailedAttempt();
+                
+                if (attemptCount >= AUTH_CONFIG.MAX_ATTEMPTS) {
+                    showMessage('Too many failed attempts. Account locked for 15 minutes.', 'error');
+                    document.getElementById('loginBtn').disabled = true;
                     
-                    const inputUserHash = addEntropy(username);
-                    const inputPassHash = addEntropy(password);
-                    
-                    if (inputUserHash === validUserHash && inputPassHash === validPassHash) {
-                        // Successful authentication
-                        clearFailedAttempts();
-                        localStorage.setItem('isWarmDelightsAdmin', 'true');
-                        localStorage.setItem('adminLoginTime', new Date().toISOString());
-                        localStorage.setItem('adminSession', secureHash(new Date().getTime().toString()));
-                        
-                        // Track successful login
-                        const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
-                        loginData.push({
-                            timestamp: new Date().toISOString(),
-                            ip: 'hidden', // Would need server-side to get real IP
-                            userAgent: navigator.userAgent.substring(0, 100)
-                        });
-                        
-                        // Keep only last 10 logins
-                        if (loginData.length > 10) {
-                            loginData.splice(0, loginData.length - 10);
-                        }
-                        localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
-                        
-                        showLoading(false);
-                        
-                        // Redirect to dashboard
-                        window.location.href = 'admin-dashboard.html';
-                    } else {
-                        // Authentication failed
-                        const attemptCount = recordFailedAttempt();
-                        showLoading(false);
-                        
-                        if (attemptCount >= MAX_ATTEMPTS) {
-                            showError('Too many failed attempts. Account locked for 15 minutes.');
-                            document.getElementById('attemptsWarning').style.display = 'block';
-                            document.getElementById('attemptsWarning').textContent = 
-                                '🔒 Account locked due to multiple failed attempts.';
-                            document.getElementById('loginBtn').disabled = true;
-                        } else {
-                            showError(`Authentication failed. ${MAX_ATTEMPTS - attemptCount} attempts remaining.`);
-                            document.getElementById('attemptsWarning').style.display = 'block';
-                            document.getElementById('attemptsWarning').textContent = 
-                                `⚠️ ${attemptCount}/${MAX_ATTEMPTS} failed attempts.`;
-                        }
-                        
-                        // Clear form
-                        document.getElementById('adminPassword').value = '';
-                    }
-                } catch (error) {
-                    showLoading(false);
-                    showError('Authentication system error. Please try again.');
+                    // Auto-unlock after lockout period
+                    setTimeout(() => {
+                        location.reload();
+                    }, AUTH_CONFIG.LOCKOUT_DURATION);
+                } else {
+                    const remaining = AUTH_CONFIG.MAX_ATTEMPTS - attemptCount;
+                    showMessage(`Authentication failed. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`, 'error');
                 }
-            }, 1500); // 1.5 second delay to prevent brute force
+                
+                // Clear password field
+                document.getElementById('adminPassword').value = '';
+            }
         });
+
+        // **🚀 INITIALIZATION**
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check lockout status
+            const lockout = isLockedOut();
+            if (lockout) {
+                const remainingTime = Math.ceil((lockout.lockedUntil - new Date().getTime()) / 60000);
+                showMessage(`Account locked for ${remainingTime} minutes`, 'error', 0);
+                document.getElementById('loginBtn').disabled = true;
+                
+                setTimeout(() => {
+                    location.reload();
+                }, (lockout.lockedUntil - new Date().getTime()));
+            }
+            
+            // Show attempt warnings
+            const failedAttempts = getFailedAttempts();
+            if (failedAttempts > 0 && failedAttempts < AUTH_CONFIG.MAX_ATTEMPTS) {
+                const remaining = AUTH_CONFIG.MAX_ATTEMPTS - failedAttempts;
+                showMessage(`${failedAttempts}/${AUTH_CONFIG.MAX_ATTEMPTS} failed attempts. ${remaining} remaining.`, 'warning', 10000);
+            }
+            
+            // Update connection status
+            updateConnectionStatus();
+            
+            // Auto-focus username field
+            if (!lockout) {
+                document.getElementById('adminUsername').focus();
+            }
+        });
+
+        // **🔒 SECURITY ENHANCEMENTS**
         
-        // Security: Disable right-click and F12
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
+        // Monitor connection status
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // Update connection status every 30 seconds
+        setInterval(updateConnectionStatus, 30000);
+        
+        // Security: Disable right-click and dev tools
+        document.addEventListener('contextmenu', e => e.preventDefault());
         
         document.addEventListener('keydown', function(e) {
-            // Disable F12, Ctrl+Shift+I, Ctrl+U
             if (e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && e.key === 'I') ||
                 (e.ctrlKey && e.key === 'U')) {
@@ -381,18 +900,26 @@
             }
         });
         
-        // Security: Clear form on page unload
+        // Clear form on page unload
         window.addEventListener('beforeunload', function() {
             document.getElementById('adminUsername').value = '';
             document.getElementById('adminPassword').value = '';
         });
-        
-        // Auto-focus first input
-        window.addEventListener('load', function() {
-            if (!isLockedOut()) {
-                document.getElementById('adminUsername').focus();
+
+        // **🔍 DEBUG TOOLS**
+        window.warmDelightsAuth = {
+            version: '3.0.0',
+            features: ['Global Storage Auth', 'Local Fallback', 'Enhanced Security'],
+            config: AUTH_CONFIG,
+            testConnection: updateConnectionStatus,
+            clearLockout: () => {
+                clearFailedAttempts();
+                location.reload();
             }
-        });
+        };
+        
+        console.log('🔐 Warm Delights Auth v3.0.0 loaded');
+        console.log('🛠️ Debug tools available:', window.warmDelightsAuth);
     </script>
 </body>
 </html>

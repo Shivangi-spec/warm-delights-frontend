@@ -1,4 +1,4 @@
-// Enhanced Admin Dashboard JavaScript with Security and Backend Sync
+// Enhanced Admin Dashboard JavaScript with Global Storage + Session Cache Integration
 document.addEventListener('DOMContentLoaded', function() {
     // Check authentication first
     if (!checkAdminAuth()) {
@@ -13,9 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadAnalytics();
     loadAdminGallery();
     
-    // Auto-sync localStorage images to backend
+    // Auto-sync with global storage
     setTimeout(() => {
-        syncLocalImagesToBackend();
+        syncWithGlobalStorage();
     }, 2000);
     
     loadVisitorLog();
@@ -35,10 +35,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 105 * 60 * 1000); // 1 hour 45 minutes
 });
 
-// Backend API URL
-const API_BASE_URL = 'https://warm-delights-backend-production.up.railway.app/api';
+// **🌍 GLOBAL STORAGE CONFIGURATION**
+const API_CONFIG = {
+    // Replace with your actual Railway backend URL
+    BACKEND_URL: window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000' 
+        : 'https://warm-delights-backend-production.up.railway.app',
+    
+    // Admin token configuration
+    ADMIN_TOKEN: 'warmdelights_admin_token_2025',
+    
+    // Session cache for admin
+    CACHE_KEY: 'warmDelights_admin_cache',
+    CACHE_EXPIRY_KEY: 'warmDelights_admin_cache_expiry',
+    CACHE_DURATION: 10 * 60 * 1000, // 10 minutes for admin
+};
 
-// Enhanced admin authentication check
+// **🔐 ENHANCED ADMIN AUTHENTICATION WITH GLOBAL STORAGE**
 function checkAdminAuth() {
     const isAdmin = localStorage.getItem('isWarmDelightsAdmin');
     const sessionToken = localStorage.getItem('adminSession');
@@ -64,6 +77,8 @@ function checkAdminAuth() {
         }
     }
 
+    // Set admin token for API calls
+    localStorage.setItem('adminToken', API_CONFIG.ADMIN_TOKEN);
     return true;
 }
 
@@ -76,11 +91,16 @@ function logout(force = false) {
     // Track logout
     trackAdminActivity('logout', { forced: force });
 
-    // Clear all admin-related data
+    // Clear all admin-related data including cache
     localStorage.removeItem('isWarmDelightsAdmin');
     localStorage.removeItem('adminSession');
     localStorage.removeItem('adminLoginTime');
     localStorage.removeItem('adminLoginHistory');
+    localStorage.removeItem('adminToken');
+    
+    // Clear admin session cache
+    sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+    sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
     
     if (!force) {
         alert('👋 Logged out successfully');
@@ -122,8 +142,23 @@ function updateSessionTimer() {
 // Update timer every minute
 setInterval(updateSessionTimer, 60000);
 
-// Admin activity tracking
+// **📊 ENHANCED ADMIN ACTIVITY TRACKING WITH GLOBAL STORAGE**
 function trackAdminActivity(action, data = {}) {
+    // Store in session storage
+    const sessionActivities = JSON.parse(sessionStorage.getItem('adminSessionActivities') || '[]');
+    sessionActivities.push({
+        action: action,
+        data: data,
+        timestamp: new Date().toISOString(),
+        session: localStorage.getItem('adminSession')
+    });
+    
+    if (sessionActivities.length > 50) {
+        sessionActivities.splice(0, sessionActivities.length - 50);
+    }
+    sessionStorage.setItem('adminSessionActivities', JSON.stringify(sessionActivities));
+
+    // Store in localStorage for persistence
     const activities = JSON.parse(localStorage.getItem('adminActivities') || '[]');
     activities.push({
         action: action,
@@ -132,12 +167,33 @@ function trackAdminActivity(action, data = {}) {
         session: localStorage.getItem('adminSession')
     });
     
-    // Keep only last 50 activities
-    if (activities.length > 50) {
-        activities.splice(0, activities.length - 50);
+    // Keep only last 100 activities in localStorage
+    if (activities.length > 100) {
+        activities.splice(0, activities.length - 100);
     }
-    
     localStorage.setItem('adminActivities', JSON.stringify(activities));
+
+    // Send to global storage backend
+    try {
+        const token = localStorage.getItem('adminSession');
+        if (token) {
+            fetch(`${API_CONFIG.BACKEND_URL}/api/analytics/track`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    eventType: `admin_${action}`,
+                    data: data
+                })
+            }).catch(() => {
+                console.log('Admin activity stored locally - backend offline');
+            });
+        }
+    } catch (error) {
+        console.log('Admin activity stored locally');
+    }
 }
 
 // Initialize admin dashboard
@@ -200,7 +256,7 @@ function handleImageFiles(files) {
     }
 }
 
-// Enhanced upload function that uploads to both localStorage AND backend
+// **📤 ENHANCED UPLOAD TO GLOBAL STORAGE**
 async function uploadImages() {
     const files = window.selectedFiles;
     if (!files || files.length === 0) {
@@ -208,34 +264,23 @@ async function uploadImages() {
         return;
     }
     
-    showStatus('📤 Uploading images...', 'info');
+    showStatus('📤 Uploading to global storage...', 'info');
     trackAdminActivity('upload_started', { fileCount: files.length });
     
     try {
-        const uploadedImages = [];
-        let backendUploads = 0;
+        let successCount = 0;
+        let localCount = 0;
         
         // Get admin token for backend upload
-        const token = localStorage.getItem('adminSession');
+        const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
         
         for (const file of files) {
-            // 1. Save to localStorage (immediate display)
-            const base64 = await fileToBase64(file);
-            const localImageData = {
-                id: Date.now() + Math.random(),
-                name: file.name,
-                data: base64,
-                uploadDate: new Date().toISOString(),
-                size: file.size
-            };
-            uploadedImages.push(localImageData);
-            
-            // 2. Upload to backend API (for all users)
+            // 1. Upload to global storage backend (primary)
             try {
                 const formData = new FormData();
                 formData.append('image', file);
                 
-                const backendResponse = await fetch(`${API_BASE_URL}/admin/gallery/upload`, {
+                const backendResponse = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/upload`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -244,37 +289,55 @@ async function uploadImages() {
                 });
                 
                 if (backendResponse.ok) {
-                    console.log('✅ Backend upload successful:', file.name);
-                    backendUploads++;
+                    const result = await backendResponse.json();
+                    console.log('✅ Global storage upload successful:', result);
+                    successCount++;
                 } else {
-                    console.error('❌ Backend upload failed:', file.name, await backendResponse.text());
+                    throw new Error(`Backend upload failed: ${backendResponse.status}`);
                 }
             } catch (backendError) {
-                console.error('❌ Backend upload error:', backendError);
-                // Continue with localStorage save even if backend fails
+                console.error('❌ Global storage upload failed:', backendError);
+                
+                // 2. Fallback to localStorage (if backend fails)
+                const base64 = await fileToBase64(file);
+                const localImageData = {
+                    id: Date.now() + Math.random(),
+                    name: file.name,
+                    filename: file.name,
+                    data: base64,
+                    uploadDate: new Date().toISOString(),
+                    size: file.size,
+                    source: 'localStorage'
+                };
+                
+                const existingImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+                existingImages.push(localImageData);
+                localStorage.setItem('adminGalleryImages', JSON.stringify(existingImages));
+                localCount++;
             }
         }
         
-        // Save to localStorage
-        const existingImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-        const allImages = [...existingImages, ...uploadedImages];
-        localStorage.setItem('adminGalleryImages', JSON.stringify(allImages));
-        
         // Show appropriate success message
-        if (backendUploads === files.length) {
-            showStatus(`✅ Successfully uploaded ${uploadedImages.length} image(s) to both local and backend!`, 'success');
-        } else if (backendUploads > 0) {
-            showStatus(`✅ Uploaded ${uploadedImages.length} image(s) locally, ${backendUploads} to backend`, 'warning');
+        if (successCount === files.length) {
+            showStatus(`✅ Successfully uploaded ${successCount} image(s) to global storage!`, 'success');
+        } else if (successCount > 0) {
+            showStatus(`⚠️ Uploaded ${successCount} to global storage, ${localCount} locally`, 'warning');
         } else {
-            showStatus(`✅ Uploaded ${uploadedImages.length} image(s) locally (backend unavailable)`, 'warning');
+            showStatus(`⚠️ Uploaded ${localCount} image(s) locally (global storage unavailable)`, 'warning');
         }
         
+        // Clear admin cache to force refresh
+        sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+        sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+        
+        // Reload gallery
         loadAdminGallery();
         
         // Track successful upload
         trackAdminActivity('upload_completed', { 
-            fileCount: uploadedImages.length,
-            backendUploads: backendUploads,
+            fileCount: files.length,
+            globalStorageUploads: successCount,
+            localUploads: localCount,
             totalSize: files.reduce((sum, file) => sum + file.size, 0)
         });
         
@@ -288,60 +351,48 @@ async function uploadImages() {
     }
 }
 
-// SYNC LOCALSTORAGE IMAGES TO BACKEND API
-async function syncLocalImagesToBackend() {
-    const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+// **🔄 SYNC WITH GLOBAL STORAGE**
+async function syncWithGlobalStorage() {
+    console.log('🔄 Syncing with global storage...');
     
-    if (adminImages.length === 0) {
-        console.log('No local images to sync');
-        return;
-    }
-
-    console.log('🔄 Syncing', adminImages.length, 'images to backend...');
-    
-    // Get admin token
-    const token = localStorage.getItem('adminSession');
-    if (!token) {
-        console.log('No admin token available for sync');
-        return;
-    }
-    
-    let syncedCount = 0;
-    
-    for (const image of adminImages) {
-        try {
-            // Convert base64 to blob
-            const response = await fetch(image.data);
-            const blob = await response.blob();
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('image', blob, image.name);
-            
-            // Upload to backend
-            const uploadResponse = await fetch(`${API_BASE_URL}/admin/gallery/upload`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-            
-            if (uploadResponse.ok) {
-                console.log('✅ Synced:', image.name);
-                syncedCount++;
-            } else {
-                console.error('❌ Sync failed for:', image.name);
-            }
-        } catch (error) {
-            console.error('❌ Sync error for', image.name, ':', error);
+    try {
+        const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
+        
+        // Check global storage connection
+        const healthResponse = await fetch(`${API_CONFIG.BACKEND_URL}/health`);
+        if (!healthResponse.ok) {
+            throw new Error('Global storage not available');
         }
+        
+        // Get current state from global storage
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (response.ok) {
+            const globalImages = await response.json();
+            console.log(`✅ Global storage has ${globalImages.length} images`);
+            
+            // Update cache with global storage state
+            const cacheData = {
+                images: globalImages,
+                timestamp: Date.now(),
+                source: 'global-storage'
+            };
+            sessionStorage.setItem(API_CONFIG.CACHE_KEY, JSON.stringify(cacheData));
+            sessionStorage.setItem(API_CONFIG.CACHE_EXPIRY_KEY, (Date.now() + API_CONFIG.CACHE_DURATION).toString());
+            
+            showStatus(`🔄 Synced with global storage (${globalImages.length} images)`, 'info');
+            trackAdminActivity('sync_completed', { globalImages: globalImages.length });
+            
+            return globalImages;
+        }
+    } catch (error) {
+        console.log('❌ Global storage sync failed:', error);
+        showStatus('⚠️ Using local data - global storage unavailable', 'warning');
     }
     
-    if (syncedCount > 0) {
-        showStatus(`✅ Synced ${syncedCount} images to backend!`, 'success');
-        trackAdminActivity('images_synced', { count: syncedCount });
-    }
+    return null;
 }
 
 // Convert file to base64
@@ -354,112 +405,267 @@ function fileToBase64(file) {
     });
 }
 
-// Load admin gallery (enhanced with backend sync status)
-function loadAdminGallery() {
+// **🖼️ ENHANCED ADMIN GALLERY WITH GLOBAL STORAGE + SESSION CACHE**
+async function loadAdminGallery() {
     const galleryContainer = document.getElementById('adminGallery');
     if (!galleryContainer) return;
-    
-    const images = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+
+    try {
+        // Step 1: Try session cache first
+        const cached = sessionStorage.getItem(API_CONFIG.CACHE_KEY);
+        const expiry = sessionStorage.getItem(API_CONFIG.CACHE_EXPIRY_KEY);
+        
+        if (cached && expiry && Date.now() < parseInt(expiry)) {
+            const cacheData = JSON.parse(cached);
+            console.log('⚡ Loading admin gallery from cache:', cacheData.images.length);
+            displayAdminImages(cacheData.images, 'session-cache');
+            return;
+        }
+
+        // Step 2: Show loading state
+        galleryContainer.innerHTML = `
+            <div class="admin-loading" style="text-align: center; padding: 40px; color: var(--primary-pink);">
+                <div class="loading-spinner" style="
+                    border: 3px solid var(--secondary-pink);
+                    border-top: 3px solid var(--primary-pink);
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 15px;
+                "></div>
+                <p>Loading from global storage...</p>
+            </div>
+        `;
+
+        // Step 3: Try to load from global storage
+        const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
+        
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+
+        if (response.ok) {
+            const globalImages = await response.json();
+            console.log(`✅ Loaded ${globalImages.length} images from global storage`);
+            
+            // Cache the results
+            const cacheData = {
+                images: globalImages,
+                timestamp: Date.now(),
+                source: 'global-storage'
+            };
+            sessionStorage.setItem(API_CONFIG.CACHE_KEY, JSON.stringify(cacheData));
+            sessionStorage.setItem(API_CONFIG.CACHE_EXPIRY_KEY, (Date.now() + API_CONFIG.CACHE_DURATION).toString());
+            
+            displayAdminImages(globalImages, 'global-storage');
+            trackAdminActivity('admin_gallery_viewed', { source: 'global-storage', count: globalImages.length });
+            return;
+        }
+
+        throw new Error('Global storage not available');
+
+    } catch (error) {
+        console.log('⚠️ Global storage unavailable, using localStorage:', error);
+        
+        // Step 4: Fallback to localStorage
+        const localImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+        displayAdminImages(localImages, 'localStorage');
+        trackAdminActivity('admin_gallery_viewed', { source: 'localStorage', count: localImages.length });
+    }
+}
+
+// **🎨 DISPLAY ADMIN IMAGES WITH SOURCE INDICATOR**
+function displayAdminImages(images, source) {
+    const galleryContainer = document.getElementById('adminGallery');
     
     if (images.length === 0) {
-        galleryContainer.innerHTML = '<p style="text-align: center; color: #6b4e57;">No images uploaded yet</p>';
+        galleryContainer.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b4e57;">
+                <h3>No images uploaded yet</h3>
+                <p>Upload your first image to get started!</p>
+            </div>
+        `;
         return;
     }
-    
-    galleryContainer.innerHTML = images.map(image => `
-        <div class="admin-gallery-item">
-            <img src="${image.data}" alt="${image.name}">
-            <button class="delete-btn" onclick="deleteImage('${image.id}')" title="Delete image">
-                ✕
-            </button>
-            <div class="image-info">
-                <p class="image-name">${image.name}</p>
-                <div class="image-details">
-                    <span class="image-date">${new Date(image.uploadDate).toLocaleDateString()}</span>
-                    <span class="image-size">${(image.size / 1024).toFixed(1)} KB</span>
-                </div>
-                <div style="margin-top: 5px;">
-                    <span class="image-views">Local ✓</span>
-                </div>
-            </div>
+
+    // Create source indicator
+    const sourceIndicator = {
+        'session-cache': { icon: '⚡', text: 'From Cache', color: '#4CAF50' },
+        'global-storage': { icon: '🌍', text: 'Global Storage', color: '#2196F3' },
+        'localStorage': { icon: '📱', text: 'Local Only', color: '#ff9800' }
+    };
+
+    const indicator = sourceIndicator[source] || sourceIndicator['localStorage'];
+
+    galleryContainer.innerHTML = `
+        <div class="gallery-source-indicator" style="
+            text-align: center; 
+            margin-bottom: 20px; 
+            padding: 10px; 
+            background: ${indicator.color}; 
+            color: white; 
+            border-radius: 10px; 
+            font-size: 14px;
+        ">
+            ${indicator.icon} ${indicator.text} • ${images.length} images
         </div>
-    `).join('');
+        ${images.map((image, index) => {
+            // Handle different image formats
+            const imageUrl = image.data || `${API_CONFIG.BACKEND_URL}/uploads/${image.filename || image}`;
+            const imageName = image.name || image.filename || image;
+            const imageDate = image.uploadDate || image.uploadedAt || 'Unknown';
+            const imageSize = image.size ? `${(image.size / 1024).toFixed(1)} KB` : 'Unknown';
+            const imageId = image.id || `${imageName}_${index}`;
+
+            return `
+                <div class="admin-gallery-item" style="animation-delay: ${index * 0.1}s;">
+                    <img src="${imageUrl}" 
+                         alt="${imageName}"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                         loading="lazy">
+                    <div class="image-error" style="display: none; align-items: center; justify-content: center; height: 200px; background: #f5f5f5; color: #666; font-size: 12px;">
+                        Image Not Available
+                    </div>
+                    ${source !== 'global-storage' ? `
+                        <button class="delete-btn" onclick="deleteImage('${imageId}')" title="Delete image">
+                            ✕
+                        </button>
+                    ` : ''}
+                    <div class="image-info">
+                        <p class="image-name" title="${imageName}">${imageName}</p>
+                        <div class="image-details">
+                            <span class="image-date">${new Date(imageDate).toLocaleDateString()}</span>
+                            <span class="image-size">${imageSize}</span>
+                        </div>
+                        <div class="image-status" style="margin-top: 5px;">
+                            <span class="status-badge" style="
+                                background: ${indicator.color}; 
+                                color: white; 
+                                padding: 2px 6px; 
+                                border-radius: 10px; 
+                                font-size: 10px;
+                            ">${indicator.text}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('')}
+    `;
 
     // Update analytics with image count
     const imageUploadsElement = document.getElementById('imageUploads');
     if (imageUploadsElement) {
         imageUploadsElement.textContent = images.length;
     }
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .admin-gallery-item {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+    `;
+    if (!document.getElementById('admin-gallery-animations')) {
+        style.id = 'admin-gallery-animations';
+        document.head.appendChild(style);
+    }
 }
 
-// Delete image with tracking (enhanced with backend cleanup)
+// **🗑️ DELETE IMAGE WITH GLOBAL STORAGE INTEGRATION**
 async function deleteImage(imageId) {
     if (!confirm('Are you sure you want to delete this image?')) return;
     
-    const images = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-    const imageToDelete = images.find(img => img.id == imageId);
-    const filteredImages = images.filter(img => img.id != imageId);
-    
-    // Remove from localStorage
-    localStorage.setItem('adminGalleryImages', JSON.stringify(filteredImages));
-    
-    // Try to delete from backend too (if it exists there)
     try {
-        const token = localStorage.getItem('adminSession');
-        if (token) {
-            // Note: This would require backend endpoint to delete by filename
-            // For now, we'll just track the deletion
-            console.log('Image deleted from localStorage:', imageToDelete?.name);
+        // Try to delete from global storage first
+        const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
+        
+        try {
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                console.log('✅ Image deleted from global storage');
+                showStatus('✅ Image deleted from global storage', 'success');
+                
+                // Clear cache to force refresh
+                sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+                sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+                
+                loadAdminGallery();
+                trackAdminActivity('image_deleted_global', { imageId: imageId });
+                return;
+            }
+        } catch (globalError) {
+            console.log('Global storage delete failed, trying localStorage:', globalError);
         }
+        
+        // Fallback: delete from localStorage
+        const images = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+        const imageToDelete = images.find(img => img.id == imageId);
+        const filteredImages = images.filter(img => img.id != imageId);
+        
+        localStorage.setItem('adminGalleryImages', JSON.stringify(filteredImages));
+        
+        loadAdminGallery();
+        showStatus('✅ Image deleted from local storage', 'warning');
+        trackAdminActivity('image_deleted_local', { 
+            imageId: imageId,
+            imageName: imageToDelete?.name 
+        });
+        
     } catch (error) {
-        console.log('Backend deletion not available:', error);
+        console.error('Delete error:', error);
+        showStatus('❌ Failed to delete image', 'error');
     }
-    
-    // Track deletion
-    trackAdminActivity('image_deleted', { 
-        imageId: imageId,
-        imageName: imageToDelete?.name 
-    });
-    
-    loadAdminGallery();
-    showStatus('✅ Image deleted successfully', 'success');
 }
 
-// Enhanced load analytics with backend integration
+// **📊 ENHANCED ANALYTICS WITH GLOBAL STORAGE**
 async function loadAnalytics() {
     try {
-        // Try to load from backend first
-        const token = localStorage.getItem('adminSession');
-        if (token) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/analytics`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const backendStats = await response.json();
-                    displayAnalytics(backendStats.stats);
-                    trackAdminActivity('analytics_viewed', { source: 'backend' });
-                    return;
+        // Try to load from global storage backend
+        const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
+        
+        try {
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/analytics`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            } catch (error) {
-                console.log('Backend analytics not available, using localStorage');
+            });
+            
+            if (response.ok) {
+                const backendStats = await response.json();
+                console.log('✅ Analytics loaded from global storage:', backendStats);
+                displayAnalytics(backendStats.stats, 'global-storage');
+                trackAdminActivity('analytics_viewed', { source: 'global-storage' });
+                return;
             }
+        } catch (error) {
+            console.log('Global storage analytics not available, using localStorage');
         }
+        
+        // Fallback to localStorage analytics
+        const stats = getLocalAnalyticsData();
+        displayAnalytics(stats, 'localStorage');
+        trackAdminActivity('analytics_viewed', { source: 'localStorage' });
+        
     } catch (error) {
-        console.log('Using localStorage analytics');
+        console.error('Analytics load error:', error);
+        const stats = getLocalAnalyticsData();
+        displayAnalytics(stats, 'localStorage');
     }
-    
-    // Fallback to localStorage analytics
-    const stats = getLocalAnalyticsData();
-    displayAnalytics(stats);
-    trackAdminActivity('analytics_viewed', { source: 'localStorage' });
 }
 
-// Display analytics data
-function displayAnalytics(stats) {
+// **📈 DISPLAY ANALYTICS WITH SOURCE INDICATOR**
+function displayAnalytics(stats, source = 'localStorage') {
     const elements = {
         totalVisitors: document.getElementById('totalVisitors'),
         todayVisitors: document.getElementById('todayVisitors'),
@@ -471,51 +677,79 @@ function displayAnalytics(stats) {
         imageViews: document.getElementById('imageViews')
     };
     
+    // Update values
     Object.keys(elements).forEach(key => {
         if (elements[key]) {
             elements[key].textContent = stats[key] || 0;
         }
     });
+
+    // Add source indicator
+    const sourceIndicator = document.getElementById('analyticsSource');
+    if (sourceIndicator) {
+        const sourceInfo = {
+            'global-storage': { icon: '🌍', text: 'Global Storage', color: '#2196F3' },
+            'localStorage': { icon: '📱', text: 'Local Data', color: '#ff9800' }
+        };
+        
+        const info = sourceInfo[source] || sourceInfo['localStorage'];
+        sourceIndicator.innerHTML = `
+            <span style="color: ${info.color}; font-size: 12px;">
+                ${info.icon} ${info.text}
+            </span>
+        `;
+    }
 }
 
 // Get local analytics data
 function getLocalAnalyticsData() {
     const events = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
+    const sessionEvents = JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]');
+    const allEvents = [...events, ...sessionEvents];
     const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
     const today = new Date().toDateString();
     
     return {
-        totalVisitors: events.filter(e => e.type === 'page_visit').length,
-        todayVisitors: events.filter(e => 
+        totalVisitors: allEvents.filter(e => e.type === 'page_visit').length,
+        todayVisitors: allEvents.filter(e => 
             e.type === 'page_visit' && 
             new Date(e.timestamp).toDateString() === today
         ).length,
-        cartAdditions: events.filter(e => e.type === 'cart_add').length,
-        whatsappOrders: events.filter(e => e.type === 'whatsapp_order').length,
-        chatInteractions: events.filter(e => e.type === 'chat_message').length,
-        contactSubmissions: events.filter(e => e.type === 'contact_submit').length,
+        cartAdditions: allEvents.filter(e => e.type === 'cart_add').length,
+        whatsappOrders: allEvents.filter(e => e.type === 'whatsapp_order').length,
+        chatInteractions: allEvents.filter(e => e.type === 'chat_message').length,
+        contactSubmissions: allEvents.filter(e => e.type === 'contact_submit').length,
         imageUploads: adminImages.length,
-        imageViews: events.filter(e => e.type === 'gallery_viewed').length
+        imageViews: allEvents.filter(e => e.type === 'gallery_viewed').length
     };
 }
 
-// Load visitor log
+// **👥 ENHANCED VISITOR LOG**
 function loadVisitorLog() {
     const events = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
-    const recentEvents = events.slice(-20).reverse();
+    const sessionEvents = JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]');
+    const allEvents = [...events, ...sessionEvents]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 30); // Last 30 events
     
     const visitorLog = document.getElementById('visitorLog');
     if (!visitorLog) return;
     
-    if (recentEvents.length === 0) {
+    if (allEvents.length === 0) {
         visitorLog.innerHTML = '<p style="text-align: center; color: #6b4e57;">No visitor activity yet</p>';
         return;
     }
     
-    visitorLog.innerHTML = recentEvents.map(event => `
-        <div class="log-entry">
-            <span>${getEventDescription(event)}</span>
-            <span style="color: #6b4e57; font-size: 12px;">
+    visitorLog.innerHTML = allEvents.map(event => `
+        <div class="log-entry" style="
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        ">
+            <span style="flex: 1;">${getEventDescription(event)}</span>
+            <span style="color: #6b4e57; font-size: 11px; white-space: nowrap; margin-left: 10px;">
                 ${new Date(event.timestamp).toLocaleString()}
             </span>
         </div>
@@ -524,23 +758,32 @@ function loadVisitorLog() {
     trackAdminActivity('visitor_log_viewed');
 }
 
-// Load admin activity log
+// **📋 ENHANCED ACTIVITY LOG**
 function loadActivityLog() {
     const activities = JSON.parse(localStorage.getItem('adminActivities') || '[]');
-    const recentActivities = activities.slice(-20).reverse();
+    const sessionActivities = JSON.parse(sessionStorage.getItem('adminSessionActivities') || '[]');
+    const allActivities = [...activities, ...sessionActivities]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 30); // Last 30 activities
     
     const activityLog = document.getElementById('activityLog');
     if (!activityLog) return;
     
-    if (recentActivities.length === 0) {
+    if (allActivities.length === 0) {
         activityLog.innerHTML = '<p style="text-align: center; color: #6b4e57;">No admin activity yet</p>';
         return;
     }
     
-    activityLog.innerHTML = recentActivities.map(activity => `
-        <div class="activity-entry">
-            <span class="activity-action">${getActivityDescription(activity.action)}</span>
-            <span class="activity-time">
+    activityLog.innerHTML = allActivities.map(activity => `
+        <div class="activity-entry" style="
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        ">
+            <span class="activity-action" style="flex: 1;">${getActivityDescription(activity.action)}</span>
+            <span class="activity-time" style="color: #6b4e57; font-size: 11px; white-space: nowrap; margin-left: 10px;">
                 ${new Date(activity.timestamp).toLocaleString()}
             </span>
         </div>
@@ -556,7 +799,8 @@ function getEventDescription(event) {
         'chat_message': '💬 Used chatbot',
         'contact_submit': '📧 Sent contact form',
         'custom_order': '🎨 Custom order request',
-        'gallery_viewed': '🖼️ Viewed gallery (' + (event.data?.imageCount || 0) + ' images)'
+        'gallery_viewed': '🖼️ Viewed gallery (' + (event.data?.imageCount || 0) + ' images)',
+        'image_view': '👁️ Viewed image'
     };
     
     return descriptions[event.type] || '📊 Unknown activity';
@@ -569,12 +813,14 @@ function getActivityDescription(action) {
         'upload_started': '📤 Started image upload',
         'upload_completed': '✅ Completed image upload',
         'upload_failed': '❌ Image upload failed',
-        'image_deleted': '🗑️ Deleted image',
+        'image_deleted_global': '🗑️ Deleted image from global storage',
+        'image_deleted_local': '🗑️ Deleted image from local storage',
         'files_selected': '📁 Selected files',
         'analytics_viewed': '📊 Viewed analytics',
         'visitor_log_viewed': '👥 Viewed visitor log',
+        'admin_gallery_viewed': '🖼️ Viewed admin gallery',
         'session_extended': '⏰ Extended session',
-        'images_synced': '🔄 Synced images to backend',
+        'sync_completed': '🔄 Synced with global storage',
         'dashboard_hidden': '👁️ Dashboard hidden',
         'dashboard_visible': '👁️ Dashboard visible',
         'dashboard_exit': '🚪 Exited dashboard',
@@ -584,16 +830,60 @@ function getActivityDescription(action) {
     return descriptions[action] || action;
 }
 
-// Show status message
-function showStatus(message, type) {
+// **📱 ENHANCED STATUS MESSAGES**
+function showStatus(message, type = 'info') {
     const statusDiv = document.getElementById('uploadStatus');
-    if (!statusDiv) return;
+    if (!statusDiv) {
+        console.log(`${type.toUpperCase()}: ${message}`);
+        return;
+    }
     
-    statusDiv.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+    const colors = {
+        'success': '#4CAF50',
+        'error': '#f44336',
+        'warning': '#ff9800',
+        'info': '#2196F3'
+    };
+    
+    const icons = {
+        'success': '✅',
+        'error': '❌',
+        'warning': '⚠️',
+        'info': 'ℹ️'
+    };
+    
+    statusDiv.innerHTML = `
+        <div class="status-message ${type}" style="
+            background: ${colors[type] || colors.info};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.3s ease;
+        ">
+            <span>${icons[type] || icons.info}</span>
+            <span>${message}</span>
+        </div>
+    `;
     
     setTimeout(() => {
         statusDiv.innerHTML = '';
     }, 5000);
+}
+
+// **🔄 REFRESH GALLERY WITH GLOBAL STORAGE**
+async function refreshGallery() {
+    // Clear all caches
+    sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+    sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+    
+    showStatus('🔄 Refreshing gallery from global storage...', 'info');
+    
+    await loadAdminGallery();
+    trackAdminActivity('gallery_refreshed');
 }
 
 // Show different sections
@@ -609,8 +899,11 @@ function showSection(sectionName) {
     });
     
     // Show selected section
-    document.getElementById(`${sectionName}-section`).classList.add('active');
-    event.target.classList.add('active');
+    const section = document.getElementById(`${sectionName}-section`);
+    const button = event.target;
+    
+    if (section) section.classList.add('active');
+    if (button) button.classList.add('active');
     
     // Load section-specific data and track
     trackAdminActivity(`section_viewed`, { section: sectionName });
@@ -626,13 +919,7 @@ function showSection(sectionName) {
     }
 }
 
-// Refresh gallery function
-function refreshGallery() {
-    loadAdminGallery();
-    showStatus('Gallery refreshed', 'info');
-}
-
-// Enhanced keyboard shortcuts
+// **⌨️ ENHANCED KEYBOARD SHORTCUTS**
 document.addEventListener('keydown', function(e) {
     // Ctrl+L for quick logout
     if (e.ctrlKey && e.key === 'l') {
@@ -647,13 +934,14 @@ document.addEventListener('keydown', function(e) {
         }
     }
     
-    // Ctrl+R for refresh analytics
+    // Ctrl+R for refresh everything
     if (e.ctrlKey && e.key === 'r') {
         e.preventDefault();
+        refreshGallery();
         loadAnalytics();
-        loadAdminGallery();
         loadVisitorLog();
         loadActivityLog();
+        showStatus('🔄 All data refreshed', 'info');
     }
     
     // Ctrl+G for gallery section
@@ -668,23 +956,86 @@ document.addEventListener('keydown', function(e) {
         showSection('analytics');
     }
     
-    // Ctrl+S for sync images
+    // Ctrl+S for sync with global storage
     if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        syncLocalImagesToBackend();
+        syncWithGlobalStorage();
+    }
+
+    // Ctrl+U for upload
+    if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        const fileInput = document.getElementById('imageUpload');
+        if (fileInput) fileInput.click();
     }
 });
 
-// Auto-save on visibility change
+// **👁️ VISIBILITY CHANGE TRACKING**
 document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
         trackAdminActivity('dashboard_hidden');
     } else {
         trackAdminActivity('dashboard_visible');
+        // Refresh data when coming back
+        if (document.getElementById('gallery-section').classList.contains('active')) {
+            loadAdminGallery();
+        }
     }
 });
 
-// Warning before closing tab
+// **⚠️ BEFORE UNLOAD WARNING**
 window.addEventListener('beforeunload', function(e) {
     trackAdminActivity('dashboard_exit');
 });
+
+// **🔍 DEBUG TOOLS FOR ADMIN**
+window.adminDebugTools = {
+    checkGlobalStorage: () => fetch(`${API_CONFIG.BACKEND_URL}/health`).then(r => r.json()),
+    clearAllCaches: () => {
+        sessionStorage.clear();
+        localStorage.removeItem(API_CONFIG.CACHE_KEY);
+        localStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+        console.log('All caches cleared');
+    },
+    syncNow: syncWithGlobalStorage,
+    viewSessionData: () => {
+        console.log('Session Activities:', JSON.parse(sessionStorage.getItem('adminSessionActivities') || '[]'));
+        console.log('Session Cache:', JSON.parse(sessionStorage.getItem(API_CONFIG.CACHE_KEY) || 'null'));
+    },
+    testUpload: () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = e => {
+            window.selectedFiles = Array.from(e.target.files);
+            uploadImages();
+        };
+        input.click();
+    }
+};
+
+console.log('🛠️ Admin Debug Tools Available:', window.adminDebugTools);
+
+// Add loading styles
+const adminStyles = document.createElement('style');
+adminStyles.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .admin-loading .loading-spinner {
+        border: 3px solid var(--secondary-pink);
+        border-top: 3px solid var(--primary-pink);
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(adminStyles);
