@@ -184,21 +184,18 @@ function createResponsiveImageElement(imageData, index) {
 }
 
 // **🌍 FIXED GALLERY LOADING FUNCTION**
+// **🌍 FIXED GALLERY LOADING FUNCTION**
 async function loadGallery() {
     console.log('🖼️ Loading gallery with global storage + session cache...');
     
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
-        console.log('Gallery grid not found');
+        console.log('❌ Gallery grid not found in DOM');
         return;
     }
 
     try {
-        // Step 1: Check session cache first (but skip cache for debugging)
-        console.log('⚡ Skipping cache for fresh data...');
-        clearImageCache(); // Force fresh data
-        
-        // Step 2: Show loading state
+        // Step 1: Show loading state
         galleryGrid.innerHTML = `
             <div class="gallery-loading" style="
                 text-align: center; 
@@ -221,16 +218,13 @@ async function loadGallery() {
             </div>
         `;
 
-        // Step 3: Fetch from global backend storage
-        console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
-        
+        // Step 2: Fetch from backend
+        console.log('🌍 Fetching from global storage...');
         const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache' // Force fresh data
-            },
-            cache: 'no-cache'
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
@@ -238,39 +232,34 @@ async function loadGallery() {
         }
 
         const images = await response.json();
-        console.log(`✅ Loaded ${images.length} images from global storage:`, images);
+        console.log('✅ Backend response:', images);
+        console.log('✅ Images type:', typeof images, 'Length:', images ? images.length : 'N/A');
 
         if (images && images.length > 0) {
             // Cache the images
             cacheImages(images);
             
-            // Render all images
+            // Render images
             renderImages(images, 'global-storage');
             
             trackEvent('gallery_loaded', { 
                 imageCount: images.length, 
-                source: 'global-storage',
-                cached: false 
+                source: 'global-storage'
             });
             return;
         }
 
-        // Step 4: Fallback to localStorage
+        // Step 3: Fallback to localStorage
         console.log('⚠️ No images in global storage, trying localStorage...');
         const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
         
         if (adminImages.length > 0) {
             console.log('📱 Loading from localStorage:', adminImages.length, 'images');
             renderImages(adminImages, 'localStorage');
-            trackEvent('gallery_loaded', { 
-                imageCount: adminImages.length, 
-                source: 'localStorage',
-                cached: false 
-            });
             return;
         }
 
-        // Step 5: No images available
+        // Step 4: No images available
         showEmptyGallery();
 
     } catch (error) {
@@ -281,46 +270,184 @@ async function loadGallery() {
 
 // **🎨 FIXED RENDER IMAGES FUNCTION**
 function renderImages(images, source) {
+    console.log('🎨 renderImages called with:', {
+        images: images,
+        imageCount: images ? images.length : 0,
+        source: source,
+        firstImage: images && images[0] ? images[0] : 'none'
+    });
+
     const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) return;
+    if (!galleryGrid) {
+        console.error('❌ Gallery grid element not found');
+        return;
+    }
     
     galleryGrid.innerHTML = '';
     
     if (!images || images.length === 0) {
+        console.log('⚠️ No images to render');
         showEmptyGallery();
         return;
     }
 
-    console.log(`🎨 Rendering ${images.length} images from ${source}:`, images);
-
-    // Create cache indicator
+    // Show cache indicator
     if (source === 'session-cache') {
         showCacheIndicator();
     }
 
-    // Render each image with error handling
     let renderedCount = 0;
-    
+
+    // Process each image
     images.forEach((imageData, index) => {
         try {
-            const imageItem = createResponsiveImageElement(imageData, index);
+            console.log(`Processing image ${index + 1}:`, imageData);
             
-            if (imageItem) {
-                galleryGrid.appendChild(imageItem);
-                renderedCount++;
+            // Handle different image data formats
+            let imageName, imageUrl;
+            
+            if (typeof imageData === 'string') {
+                // Simple string filename
+                imageName = imageData;
+                imageUrl = `${API_CONFIG.BACKEND_URL}/uploads/${imageName}`;
+            } else if (imageData && typeof imageData === 'object') {
+                // Object with various possible properties
+                imageName = imageData.filename || imageData.name || imageData.originalname || 'unknown';
+                imageUrl = imageData.url || imageData.path || `${API_CONFIG.BACKEND_URL}/uploads/${imageName}`;
+                
+                // Handle relative paths
+                if (imageUrl.startsWith('/')) {
+                    imageUrl = `${API_CONFIG.BACKEND_URL}${imageUrl}`;
+                }
             } else {
-                console.warn('Failed to create image element for:', imageData);
+                console.warn('Unknown image data format:', imageData);
+                return;
             }
+
+            // Create gallery item
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.style.animationDelay = `${index * 0.1}s`;
+            
+            const img = document.createElement('img');
+            img.alt = imageName || 'Warm Delights Creation';
+            img.className = 'responsive-img';
+            img.loading = 'lazy';
+            img.src = imageUrl;
+            
+            // Error handling for images
+            img.onerror = function() {
+                console.log(`❌ Image failed to load: ${this.src}`);
+                // Try alternative paths
+                const alternatives = [
+                    `${API_CONFIG.BACKEND_URL}/api/uploads/${imageName}`,
+                    `${API_CONFIG.BACKEND_URL}/images/${imageName}`,
+                    'https://via.placeholder.com/300x200/f4c2c2/d67b8a?text=Warm+Delights'
+                ];
+                
+                const currentSrc = this.src;
+                const nextAltIndex = alternatives.findIndex(alt => alt === currentSrc) + 1;
+                
+                if (nextAltIndex < alternatives.length) {
+                    this.src = alternatives[nextAltIndex];
+                } else {
+                    this.alt = 'Image not available';
+                }
+            };
+            
+            img.onload = function() {
+                console.log(`✅ Image loaded: ${imageName}`);
+                trackImageView(imageName);
+            };
+            
+            // Add click handler for modal
+            img.onclick = () => openImageModal(img.src);
+            
+            galleryItem.appendChild(img);
+            galleryGrid.appendChild(galleryItem);
+            
+            renderedCount++;
+            
         } catch (error) {
-            console.error('Error rendering image:', imageData, error);
+            console.error('Error processing image:', imageData, error);
         }
     });
 
-    console.log(`🖼️ Successfully rendered ${renderedCount} out of ${images.length} images`);
+    console.log(`🖼️ Successfully rendered ${renderedCount} out of ${images.length} images from ${source}`);
     
-    // Store rendered images globally
-    galleryImages = images;
+    if (renderedCount === 0) {
+        showEmptyGallery();
+    }
 }
+
+// **📱 ENHANCED SHOW CACHE INDICATOR**
+function showCacheIndicator() {
+    const cacheIndicator = document.createElement('div');
+    cacheIndicator.textContent = '⚡ Loaded from cache';
+    cacheIndicator.style.cssText = `
+        position: fixed;
+        top: 70px;
+        right: 10px;
+        background: #4CAF50;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 1000;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    `;
+    document.body.appendChild(cacheIndicator);
+    
+    setTimeout(() => {
+        cacheIndicator.style.opacity = '0';
+        setTimeout(() => {
+            if (document.body.contains(cacheIndicator)) {
+                document.body.removeChild(cacheIndicator);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// **🔧 DEBUG FUNCTION TO TEST RENDERING**
+window.debugGallery = {
+    async testBackend() {
+        try {
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`);
+            const images = await response.json();
+            console.log('🔍 Backend test result:', images);
+            return images;
+        } catch (error) {
+            console.error('❌ Backend test failed:', error);
+            return null;
+        }
+    },
+    
+    testRender(sampleImages) {
+        const testImages = sampleImages || [
+            { filename: 'test1.jpg' },
+            { filename: 'test2.jpg' }
+        ];
+        console.log('🧪 Testing render with:', testImages);
+        renderImages(testImages, 'test');
+    },
+    
+    forceRefresh() {
+        clearImageCache();
+        loadGallery();
+    },
+    
+    checkElements() {
+        console.log('🔍 DOM Check:');
+        console.log('Gallery grid exists:', !!document.getElementById('galleryGrid'));
+        console.log('Gallery grid HTML:', document.getElementById('galleryGrid')?.outerHTML);
+    }
+};
+
+console.log('🛠️ Debug tools available: window.debugGallery');
+
 
 function showCacheIndicator() {
     const cacheIndicator = document.createElement('div');
