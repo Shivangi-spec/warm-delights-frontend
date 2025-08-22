@@ -772,6 +772,7 @@ function loadTextMenu() {
 
 // Display menu items with minimum quantity controls
 function displayMenuItems(items) {
+    console.log("DISPLAY MENU ITEMS",items)
     const menuList = document.getElementById('menuItems');
     if (!menuList) return;
 
