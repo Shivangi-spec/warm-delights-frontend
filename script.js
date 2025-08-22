@@ -2,10 +2,7 @@
 
 // **🌍 GLOBAL STORAGE + SESSION CACHE CONFIGURATION**
 const API_CONFIG = {
-    // Replace with your actual Railway backend URL
-    BACKEND_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000' 
-        : 'https://warm-delights-backend-production.up.railway.app',
+    BACKEND_URL: 'https://warm-delights-backend-production.up.railway.app',
     
     // Session cache configuration
     CACHE_KEY: 'warmDelights_gallery_cache',
@@ -236,7 +233,7 @@ async function loadGallery() {
         // Step 3: Fetch from global backend storage
         console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
         
-        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
+        const response = await fetch('https://warm-delights-backend-production.up.railway.app/api/images', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

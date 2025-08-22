@@ -37,10 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // **🌍 GLOBAL STORAGE CONFIGURATION**
 const API_CONFIG = {
-    // Replace with your actual Railway backend URL
-    BACKEND_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000' 
-        : 'https://warm-delights-backend-production.up.railway.app',
+    BACKEND_URL: 'https://warm-delights-backend-production.up.railway.app',
     
     // Admin token configuration
     ADMIN_TOKEN: 'warmdelights_admin_token_2025',
@@ -77,8 +74,32 @@ function checkAdminAuth() {
         }
     }
 
-    // Set admin token for API calls
-    localStorage.setItem('adminToken', API_CONFIG.ADMIN_TOKEN);
+    // ADD THIS CHECK - Test backend connectivity with token
+    const token = localStorage.getItem('adminSession');
+    if (token && token.startsWith('eyJ')) { // Only test if it's a JWT token
+        try {
+            fetch('https://warm-delights-backend-production.up.railway.app/api/admin/analytics', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok && response.status === 401) {
+                    console.log('Token invalid, will redirect to login on next admin action');
+                    // Don't redirect immediately, just log - let specific actions handle 401
+                }
+            })
+            .catch(error => {
+                console.log('Backend connectivity test failed:', error);
+                // Continue with local auth as fallback
+            });
+        } catch (error) {
+            console.log('Token validation error:', error);
+        }
+    }
+
     return true;
 }
 
@@ -280,21 +301,31 @@ async function uploadImages() {
                 const formData = new FormData();
                 formData.append('image', file);
                 
-                const backendResponse = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/upload`, {
+                const backendResponse = await fetch('https://warm-delights-backend-production.up.railway.app/api/admin/gallery/upload', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
                     },
                     body: formData
                 });
                 
-                if (backendResponse.ok) {
-                    const result = await backendResponse.json();
-                    console.log('✅ Global storage upload successful:', result);
-                    successCount++;
-                } else {
-                    throw new Error(`Backend upload failed: ${backendResponse.status}`);
+                // Check for authentication failure
+                if (backendResponse.status === 401) {
+                    alert('❌ Session expired. Please login again.');
+                    window.location.href = 'admin-login.html';
+                    return;
                 }
+                
+                // Check for other errors
+                if (!backendResponse.ok) {
+                    throw new Error(`Upload failed: ${backendResponse.status} ${backendResponse.statusText}`);
+                }
+                
+                const result = await backendResponse.json();
+                console.log('✅ Global storage upload successful:', result);
+                successCount++;
+                
             } catch (backendError) {
                 console.error('❌ Global storage upload failed:', backendError);
                 
