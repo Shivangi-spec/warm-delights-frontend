@@ -304,7 +304,6 @@
         }
         
         .loading-overlay {
-            display: none;
             position: absolute;
             top: 0;
             left: 0;
@@ -312,11 +311,11 @@
             bottom: 0;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 25px;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            display: none;
+            flex-direction: column;
         }
         
         .loading-overlay.show {
@@ -433,26 +432,6 @@
             }
         }
         
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --white: #1a1a1a;
-                --text-dark: #ffffff;
-                --text-light: #cccccc;
-            }
-        }
-        
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-            .admin-login-container {
-                border: 3px solid var(--primary-pink);
-            }
-            
-            .input-group input {
-                border-width: 3px;
-            }
-        }
-        
         /* Reduce motion for accessibility */
         @media (prefers-reduced-motion: reduce) {
             *,
@@ -549,10 +528,8 @@
     <script>
         // **🌍 GLOBAL STORAGE AUTHENTICATION CONFIGURATION**
         const AUTH_CONFIG = {
-            // Replace with your actual Railway backend URL
-            BACKEND_URL: window.location.hostname === 'localhost' 
-                ? 'http://localhost:5000' 
-                : 'https://warm-delights-backend-production.up.railway.app',
+            // Fixed backend URL
+            BACKEND_URL: 'https://warm-delights-backend-production.up.railway.app',
             
             // Security settings
             MAX_ATTEMPTS: 5,
@@ -560,8 +537,9 @@
             ATTEMPT_RESET_TIME: 60 * 60 * 1000, // 1 hour
             SESSION_DURATION: 2 * 60 * 60 * 1000, // 2 hours
             
-            // Authentication delay to prevent brute force
-            AUTH_DELAY: 1500
+            // Authentication timeout settings
+            AUTH_TIMEOUT: 8000, // 8 seconds timeout
+            AUTH_DELAY: 1000
         };
 
         // **🔐 ENHANCED SECURITY FUNCTIONS**
@@ -672,12 +650,16 @@
                 dot.className = 'connection-dot';
                 text.textContent = 'Connected';
                 
-                // Test backend connection
+                // Test backend connection with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
                 fetch(AUTH_CONFIG.BACKEND_URL + '/health', { 
                     method: 'GET',
-                    signal: AbortSignal.timeout(5000)
+                    signal: controller.signal
                 })
                 .then(response => {
+                    clearTimeout(timeoutId);
                     if (response.ok) {
                         dot.className = 'connection-dot';
                         text.textContent = 'Global Storage Ready';
@@ -686,6 +668,7 @@
                     }
                 })
                 .catch(() => {
+                    clearTimeout(timeoutId);
                     dot.className = 'connection-dot offline';
                     text.textContent = 'Local Mode';
                 });
@@ -695,18 +678,24 @@
             }
         }
 
-        // **🔓 ENHANCED AUTHENTICATION WITH GLOBAL STORAGE**
+        // **🔓 FIXED AUTHENTICATION WITH PROPER TIMEOUT**
         async function authenticateUser(username, password) {
-            // Step 1: Update loading step
             showLoading(true, '🔐 Validating credentials...');
             
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Add initial delay
+            await new Promise(resolve => setTimeout(resolve, AUTH_CONFIG.AUTH_DELAY));
             
             try {
-                // Step 2: Try backend authentication first
                 showLoading(true, '🌍 Connecting to global storage...');
                 
-                const response = await fetch('https://warm-delights-backend-production.up.railway.app/api/admin/login', {
+                // Create timeout controller
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                    console.log('Authentication request timed out');
+                }, AUTH_CONFIG.AUTH_TIMEOUT);
+                
+                const response = await fetch(`${AUTH_CONFIG.BACKEND_URL}/api/admin/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -715,9 +704,10 @@
                         username: username,
                         password: password
                     }),
-                    signal: AbortSignal.timeout(10000)
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
 
                 if (response.ok) {
                     const result = await response.json();
@@ -729,7 +719,6 @@
                         // Store authentication data
                         localStorage.setItem('isWarmDelightsAdmin', 'true');
                         localStorage.setItem('adminSession', result.token || generateSessionToken());
-                        localStorage.setItem('globalStorageAuth', 'true');
                         localStorage.setItem('adminLoginTime', new Date().toISOString());
                         localStorage.setItem('globalStorageAuth', 'true');
                         
@@ -752,20 +741,26 @@
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         window.location.href = 'admin-dashboard.html';
                         return true;
+                    } else {
+                        throw new Error(result.message || 'Authentication failed');
                     }
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
                 }
                 
-                // Backend authentication failed, try fallback
-                throw new Error('Backend authentication failed');
-                
             } catch (error) {
-                console.log('Global storage authentication unavailable, trying fallback...');
+                console.log('Backend auth failed:', error.name, error.message);
                 
-                // Step 3: Fallback authentication
-                showLoading(true, '📱 Using local authentication...');
+                // Handle timeout specifically
+                if (error.name === 'AbortError') {
+                    showLoading(true, '⏱️ Connection timeout, trying local auth...');
+                } else {
+                    showLoading(true, '📱 Backend unavailable, using local auth...');
+                }
+                
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // Secure credential verification (fallback)
+                // Fallback authentication
                 const validUserHash = secureHash('warmdelights_admin');
                 const validPassHash = secureHash('SecurePass@2025!');
                 
@@ -891,17 +886,6 @@
         // Update connection status every 30 seconds
         setInterval(updateConnectionStatus, 30000);
         
-        // Security: Disable right-click and dev tools
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12' || 
-                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-                (e.ctrlKey && e.key === 'U')) {
-                e.preventDefault();
-            }
-        });
-        
         // Clear form on page unload
         window.addEventListener('beforeunload', function() {
             document.getElementById('adminUsername').value = '';
@@ -910,17 +894,24 @@
 
         // **🔍 DEBUG TOOLS**
         window.warmDelightsAuth = {
-            version: '3.0.0',
-            features: ['Global Storage Auth', 'Local Fallback', 'Enhanced Security'],
+            version: '3.0.1',
+            features: ['Global Storage Auth', 'Local Fallback', 'Timeout Handling', 'Enhanced Security'],
             config: AUTH_CONFIG,
             testConnection: updateConnectionStatus,
             clearLockout: () => {
                 clearFailedAttempts();
                 location.reload();
+            },
+            testAuth: () => {
+                console.log('Testing backend connection...');
+                fetch(AUTH_CONFIG.BACKEND_URL + '/api')
+                    .then(r => r.json())
+                    .then(data => console.log('✅ Backend response:', data))
+                    .catch(err => console.error('❌ Backend error:', err));
             }
         };
         
-        console.log('🔐 Warm Delights Auth v3.0.0 loaded');
+        console.log('🔐 Warm Delights Auth v3.0.1 loaded');
         console.log('🛠️ Debug tools available:', window.warmDelightsAuth);
     </script>
 </body>
