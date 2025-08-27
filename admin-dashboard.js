@@ -445,6 +445,8 @@ async function loadAdminGallery() {
         // Step 1: Try session cache first
         const cached = sessionStorage.getItem(API_CONFIG.CACHE_KEY);
         const expiry = sessionStorage.getItem(API_CONFIG.CACHE_EXPIRY_KEY);
+
+        console.log('CACHED IMAGES: ',cached)
         
         if (cached && expiry && Date.now() < parseInt(expiry)) {
             const cacheData = JSON.parse(cached);
@@ -614,6 +616,7 @@ async function deleteImage(imageId) {
     try {
         // Try to delete from global storage first
         const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
+        console.log(token);
         
         try {
             const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/${imageId}`, {

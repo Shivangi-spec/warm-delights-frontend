@@ -3,15 +3,18 @@
 // **🌍 GLOBAL STORAGE + SESSION CACHE CONFIGURATION**
 const API_CONFIG = {
     // Replace with your actual Railway backend URL
-    BACKEND_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000' 
-        : 'https://warm-delights-backend-production.up.railway.app',
-    
+    // BACKEND_URL: window.location.hostname === 'localhost' 
+    //     ? 'http://localhost:5000' 
+    //     : 'https://warm-delights-backend-production.up.railway.app',
+
+    BACKEND_URL: 'http://localhost:5000',
+
+
     // Session cache configuration
     CACHE_KEY: 'warmDelights_gallery_cache',
     CACHE_EXPIRY_KEY: 'warmDelights_cache_expiry',
     CACHE_DURATION: 15 * 60 * 1000, // 15 minutes
-    
+
     // Fallback image paths for maximum compatibility
     IMAGE_PATHS: [
         '/uploads/',
@@ -33,13 +36,13 @@ const menuData = [
     { id: 2, name: 'Chocolate Cake', category: 'cakes', price: 500, minOrder: 1, minOrderText: 'Minimum 1 cake' },
     { id: 3, name: 'Strawberry Cake', category: 'cakes', price: 550, minOrder: 1, minOrderText: 'Minimum 1 cake' },
     { id: 4, name: 'Butterscotch Cake', category: 'cakes', price: 550, minOrder: 1, minOrderText: 'Minimum 1 cake' },
-    
+
     // Cookies - 1 box = 250g
     { id: 5, name: 'Peanut Butter Cookies', category: 'cookies', price: 200, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
     { id: 6, name: 'Chocolate Cookies', category: 'cookies', price: 180, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
     { id: 7, name: 'Almond Cookies', category: 'cookies', price: 190, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
     { id: 8, name: 'Butter Cream Cookies', category: 'cookies', price: 160, minOrder: 1, minOrderText: 'Minimum 1 box (250g)', priceUnit: '/box' },
-    
+
     // Cupcakes & Muffins - Minimum 4 pieces
     { id: 9, name: 'Chocolate Cupcakes', category: 'cupcakes', price: 40, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' },
     { id: 10, name: 'Whole Wheat Banana Muffins', category: 'cupcakes', price: 35, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' },
@@ -56,12 +59,12 @@ function trackEvent(eventType, data = {}) {
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent.substring(0, 100)
     });
-    
+
     // Keep only last 100 events in session
     if (sessionEvents.length > 100) {
         sessionEvents.splice(0, sessionEvents.length - 100);
     }
-    
+
     sessionStorage.setItem('warmDelightsEvents', JSON.stringify(sessionEvents));
 
     // Also store in localStorage for persistence (limited)
@@ -71,12 +74,12 @@ function trackEvent(eventType, data = {}) {
         data: data,
         timestamp: new Date().toISOString()
     });
-    
+
     // Keep only last 500 persistent events
     if (persistentEvents.length > 500) {
         persistentEvents.splice(0, persistentEvents.length - 500);
     }
-    
+
     localStorage.setItem('warmDelightsEvents', JSON.stringify(persistentEvents));
 
     // Send to global backend storage
@@ -103,16 +106,16 @@ function getCachedImages() {
     try {
         const cached = sessionStorage.getItem(API_CONFIG.CACHE_KEY);
         const expiry = sessionStorage.getItem(API_CONFIG.CACHE_EXPIRY_KEY);
-        
+
         if (!cached || !expiry) return null;
-        
+
         // Check if cache is expired
         if (new Date().getTime() > parseInt(expiry)) {
             console.log('⏰ Session cache expired, clearing...');
             clearImageCache();
             return null;
         }
-        
+
         const images = JSON.parse(cached);
         console.log('⚡ Loading from session cache:', images.length, 'images');
         return images;
@@ -126,10 +129,10 @@ function getCachedImages() {
 function cacheImages(images) {
     try {
         const expiryTime = new Date().getTime() + API_CONFIG.CACHE_DURATION;
-        
+
         sessionStorage.setItem(API_CONFIG.CACHE_KEY, JSON.stringify(images));
         sessionStorage.setItem(API_CONFIG.CACHE_EXPIRY_KEY, expiryTime.toString());
-        
+
         console.log('✅ Images cached in session storage for 15 minutes');
     } catch (error) {
         console.error('Cache write error:', error);
@@ -150,18 +153,19 @@ function clearImageCache() {
 function createResponsiveImageElement(imageName) {
     const galleryItem = document.createElement('div');
     galleryItem.className = 'gallery-item';
-    
+
     const img = document.createElement('img');
     img.alt = 'Warm Delights Cake';
     img.className = 'responsive-img';
     img.loading = 'lazy';
-    
+
     // Try multiple URLs for maximum compatibility
     let currentUrlIndex = 0;
-    
+
     function tryNextUrl() {
         if (currentUrlIndex < API_CONFIG.IMAGE_PATHS.length) {
             img.src = `${API_CONFIG.BACKEND_URL}${API_CONFIG.IMAGE_PATHS[currentUrlIndex]}${imageName}`;
+            console.log('IMAGE: ',img.src);
             currentUrlIndex++;
         } else {
             // All URLs failed, use placeholder
@@ -169,24 +173,24 @@ function createResponsiveImageElement(imageName) {
             img.alt = 'Image not available';
         }
     }
-    
-    img.onerror = function() {
+
+    img.onerror = function () {
         console.log(`Image failed: ${this.src}, trying next...`);
         tryNextUrl();
     };
-    
-    img.onload = function() {
+
+    img.onload = function () {
         console.log(`✅ Image loaded successfully: ${this.src}`);
         // Track image view
         trackImageView(imageName);
     };
-    
+
     // Start with the first URL
     tryNextUrl();
-    
+
     // Add click handler for modal
     img.onclick = () => openImageModal(img.src);
-    
+
     galleryItem.appendChild(img);
     return galleryItem;
 }
@@ -194,7 +198,7 @@ function createResponsiveImageElement(imageName) {
 // **🌍 LOAD GALLERY FROM GLOBAL STORAGE WITH SESSION CACHE**
 async function loadGallery() {
     console.log('🖼️ Loading gallery with global storage + session cache...');
-    
+
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
         console.log('Gallery grid not found');
@@ -235,7 +239,7 @@ async function loadGallery() {
 
         // Step 3: Fetch from global backend storage
         console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
-        
+
         const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
             method: 'GET',
             headers: {
@@ -255,15 +259,15 @@ async function loadGallery() {
         if (images.length > 0) {
             // Cache the images in session storage
             cacheImages(images);
-            
+
             // Render images from global storage
             renderImages(images, 'global-storage');
-            
+
             // Track successful load
-            trackEvent('gallery_loaded', { 
-                imageCount: images.length, 
+            trackEvent('gallery_loaded', {
+                imageCount: images.length,
                 source: 'global-storage',
-                cached: false 
+                cached: false
             });
             return;
         }
@@ -271,18 +275,18 @@ async function loadGallery() {
         // Step 4: Fallback to localStorage (admin uploaded images)
         console.log('⚠️ No images in global storage, trying localStorage...');
         const adminImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-        
+
         if (adminImages.length > 0) {
             console.log('📱 Loading from localStorage:', adminImages.length, 'images');
-            
+
             // Convert localStorage format to standard format
             const localImages = adminImages.map(img => img.name || img.filename);
             renderImages(localImages, 'localStorage');
-            
-            trackEvent('gallery_loaded', { 
-                imageCount: localImages.length, 
+
+            trackEvent('gallery_loaded', {
+                imageCount: localImages.length,
                 source: 'localStorage',
-                cached: false 
+                cached: false
             });
             return;
         }
@@ -300,9 +304,9 @@ async function loadGallery() {
 function renderImages(images, source) {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
-    
+
     galleryGrid.innerHTML = '';
-    
+
     if (!images || images.length === 0) {
         showEmptyGallery();
         return;
@@ -327,7 +331,7 @@ function renderImages(images, source) {
             transition: opacity 0.3s ease;
         `;
         document.body.appendChild(cacheIndicator);
-        
+
         setTimeout(() => {
             if (document.body.contains(cacheIndicator)) {
                 cacheIndicator.style.opacity = '0';
@@ -342,11 +346,11 @@ function renderImages(images, source) {
 
     images.forEach((imageName, index) => {
         const imageItem = createResponsiveImageElement(imageName);
-        
+
         // Add staggered animation
         imageItem.style.animationDelay = `${index * 0.1}s`;
         imageItem.style.animation = 'fadeInUp 0.5s ease forwards';
-        
+
         galleryGrid.appendChild(imageItem);
     });
 
@@ -426,7 +430,7 @@ function refreshGallery() {
 // **👁️ TRACK IMAGE VIEW**
 function trackImageView(filename) {
     if (!filename) return;
-    
+
     // Track view in global storage
     fetch(`${API_CONFIG.BACKEND_URL}/api/images/${filename}/view`, {
         method: 'POST'
@@ -442,7 +446,7 @@ function trackImageView(filename) {
 }
 
 // Track visitor when page loads
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     // Don't track admin visits
     if (!localStorage.getItem('isWarmDelightsAdmin')) {
         trackEvent('page_visit', {
@@ -451,7 +455,7 @@ window.addEventListener('load', function() {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     console.log('🚀 Warm Delights with Global Storage + Session Cache loaded');
 });
 
@@ -473,7 +477,7 @@ async function checkAPIConnection() {
 function toggleMenu() {
     const mobileNav = document.getElementById('mobileNav');
     const toggleBtn = document.querySelector('.mobile-menu-toggle');
-    
+
     if (mobileNav) {
         mobileNav.classList.toggle('active');
         if (toggleBtn) {
@@ -486,7 +490,7 @@ function toggleMenu() {
 function toggleCart() {
     const cartSidebar = document.getElementById('cartSidebar');
     const cartOverlay = document.getElementById('cartOverlay');
-    
+
     cartSidebar.classList.toggle('active');
     cartOverlay.classList.toggle('active');
 }
@@ -494,28 +498,28 @@ function toggleCart() {
 function addToCartWithQuantity(item, itemId) {
     const quantityInput = document.getElementById(`qty-${itemId}`);
     const quantity = parseInt(quantityInput.value);
-    
+
     if (quantity < item.minOrder) {
         alert(`Minimum order quantity for ${item.name} is ${item.minOrder}`);
         quantityInput.value = item.minOrder;
         return;
     }
-    
+
     if (quantity > 50) {
         alert(`Maximum order quantity is 50`);
         quantityInput.value = 50;
         return;
     }
-    
+
     // Add to cart with specified quantity
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
-    
+
     if (existingItem) {
         existingItem.quantity += quantity;
     } else {
         cart.push({ ...item, quantity: quantity });
     }
-    
+
     // Track cart addition with enhanced data
     trackEvent('cart_add', {
         itemName: item.name,
@@ -524,11 +528,11 @@ function addToCartWithQuantity(item, itemId) {
         quantity: quantity,
         timestamp: new Date().toISOString()
     });
-    
+
     updateCartUI();
     updateCartCount();
     showNotification(`${quantity} ${item.name} added to cart! 🛒`);
-    
+
     // Reset quantity input to minimum
     quantityInput.value = item.minOrder;
 }
@@ -536,14 +540,14 @@ function addToCartWithQuantity(item, itemId) {
 function removeFromCart(itemId) {
     const removedItem = cart.find(item => item.id === itemId);
     cart = cart.filter(item => item.id !== itemId);
-    
+
     if (removedItem) {
         trackEvent('cart_remove', {
             itemName: removedItem.name,
             quantity: removedItem.quantity
         });
     }
-    
+
     updateCartUI();
     updateCartCount();
 }
@@ -553,12 +557,12 @@ function updateQuantity(itemId, change) {
     if (item) {
         const menuItem = menuData.find(mi => mi.id === itemId);
         const newQuantity = item.quantity + change;
-        
+
         if (newQuantity < menuItem.minOrder) {
             alert(`Minimum quantity for ${item.name} is ${menuItem.minOrder}`);
             return;
         }
-        
+
         if (newQuantity <= 0) {
             removeFromCart(itemId);
         } else if (newQuantity <= 50) {
@@ -574,7 +578,7 @@ function updateQuantity(itemId, change) {
 function updateCartCount() {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const elements = ['cartCount', 'mobileCartCount'];
-    
+
     elements.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -587,21 +591,21 @@ function updateCartUI() {
     const cartItems = document.getElementById('cartItems');
     const cartTotal = document.getElementById('cartTotal');
     const checkoutBtn = document.getElementById('checkoutBtn');
-    
+
     if (!cartItems) return;
-    
+
     if (cart.length === 0) {
         cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
         if (cartTotal) cartTotal.textContent = '0';
         if (checkoutBtn) checkoutBtn.disabled = true;
         return;
     }
-    
+
     let total = 0;
     cartItems.innerHTML = cart.map(item => {
         const itemTotal = item.price * item.quantity;
         total += itemTotal;
-        
+
         return `
             <div class="cart-item">
                 <div class="cart-item-info">
@@ -620,31 +624,31 @@ function updateCartUI() {
             </div>
         `;
     }).join('');
-    
+
     if (cartTotal) cartTotal.textContent = total;
     if (checkoutBtn) checkoutBtn.disabled = false;
 }
 
 function checkout() {
     if (cart.length === 0) return;
-    
+
     // Track WhatsApp order with enhanced data
     trackEvent('whatsapp_order', {
-        items: cart.map(item => ({ 
-            name: item.name, 
-            quantity: item.quantity, 
-            price: item.price 
+        items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
         })),
         total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         timestamp: new Date().toISOString()
     });
-    
-    const orderSummary = cart.map(item => 
+
+    const orderSummary = cart.map(item =>
         `${item.name} (Qty: ${item.quantity}) - ₹${item.price * item.quantity}`
     ).join('\n');
-    
+
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     const whatsappMessage = `Hi! I'd like to place an order from Warm Delights:
 
 ${orderSummary}
@@ -652,9 +656,9 @@ ${orderSummary}
 *Total: ₹${total}*
 
 Please confirm the availability and delivery details.`;
-    
+
     const whatsappURL = `https://wa.me/918847306427?text=${encodeURIComponent(whatsappMessage)}`;
-    
+
     window.open(whatsappURL, '_blank');
 }
 
@@ -667,7 +671,7 @@ function showNotification(message, type = 'success') {
         'info': '#2196F3',
         'warning': '#ff9800'
     };
-    
+
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -683,7 +687,7 @@ function showNotification(message, type = 'success') {
         max-width: 300px;
     `;
     notification.textContent = message;
-    
+
     // Add animation styles
     if (!document.getElementById('notification-styles')) {
         const style = document.createElement('style');
@@ -696,9 +700,9 @@ function showNotification(message, type = 'success') {
         `;
         document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideIn 0.3s ease-out reverse';
         setTimeout(() => {
@@ -751,22 +755,22 @@ function displayMenuItems(items) {
 // Filter menu by category
 function filterMenu(category) {
     currentCategory = category;
-    
+
     // Update active button
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     if (event && event.target) {
         event.target.classList.add('active');
     }
 
-    const filteredItems = category === 'all' 
-        ? allMenuItems 
+    const filteredItems = category === 'all'
+        ? allMenuItems
         : allMenuItems.filter(item => item.category.toLowerCase() === category);
-    
+
     displayMenuItems(filteredItems);
-    
+
     // Track menu filter
     trackEvent('menu_filtered', {
         category: category,
@@ -792,7 +796,7 @@ function openImageModal(imageUrl) {
         padding: 20px;
         animation: fadeIn 0.3s ease;
     `;
-    
+
     const img = document.createElement('img');
     img.src = imageUrl;
     img.style.cssText = `
@@ -802,7 +806,7 @@ function openImageModal(imageUrl) {
         object-fit: contain;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     `;
-    
+
     const closeBtn = document.createElement('div');
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = `
@@ -814,11 +818,11 @@ function openImageModal(imageUrl) {
         cursor: pointer;
         z-index: 10001;
     `;
-    
+
     modal.appendChild(img);
     modal.appendChild(closeBtn);
     document.body.appendChild(modal);
-    
+
     // Close modal handlers
     const closeModal = () => {
         modal.style.animation = 'fadeIn 0.3s ease reverse';
@@ -828,12 +832,12 @@ function openImageModal(imageUrl) {
             }
         }, 300);
     };
-    
+
     modal.onclick = (e) => {
         if (e.target === modal) closeModal();
     };
     closeBtn.onclick = closeModal;
-    
+
     // Handle escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape' && document.body.contains(modal)) {
@@ -842,7 +846,7 @@ function openImageModal(imageUrl) {
         }
     };
     document.addEventListener('keydown', handleEscape);
-    
+
     // Track image modal open
     trackEvent('image_modal_opened', {
         imageUrl: imageUrl
@@ -852,15 +856,15 @@ function openImageModal(imageUrl) {
 // Custom order form handling
 async function handleCustomOrder(event) {
     event.preventDefault();
-    
+
     const formData = new FormData(event.target);
     const submitBtn = event.target.querySelector('.custom-submit-btn');
     const originalText = submitBtn.textContent;
-    
+
     try {
         submitBtn.textContent = 'Submitting...';
         submitBtn.disabled = true;
-        
+
         // Create WhatsApp message
         const customerName = formData.get('customerName');
         const customerPhone = formData.get('customerPhone');
@@ -868,7 +872,7 @@ async function handleCustomOrder(event) {
         const treatFlavour = formData.get('treatFlavour');
         const designNotes = formData.get('designNotes');
         const deliveryDate = formData.get('deliveryDate');
-        
+
         // Track custom order
         trackEvent('custom_order', {
             customerName: customerName,
@@ -876,7 +880,7 @@ async function handleCustomOrder(event) {
             flavour: treatFlavour,
             timestamp: new Date().toISOString()
         });
-        
+
         const whatsappMessage = `Hi! I'd like to place a custom order from Warm Delights:
 
 *Customer Details:*
@@ -894,11 +898,11 @@ Please confirm availability and pricing.`;
         // Open WhatsApp
         const whatsappURL = `https://wa.me/918847306427?text=${encodeURIComponent(whatsappMessage)}`;
         window.open(whatsappURL, '_blank');
-        
+
         // Reset form
         event.target.reset();
         showNotification('Custom order request sent via WhatsApp! We will contact you soon.', 'success');
-        
+
     } catch (error) {
         showNotification('Failed to submit custom order. Please try again.', 'error');
     } finally {
@@ -910,7 +914,7 @@ Please confirm availability and pricing.`;
 // Enhanced contact form handling with global storage
 async function handleContactForm(event) {
     event.preventDefault();
-    
+
     const formData = {
         name: document.getElementById('name').value,
         email: document.getElementById('email').value,
@@ -920,7 +924,7 @@ async function handleContactForm(event) {
 
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    
+
     try {
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
@@ -930,7 +934,7 @@ async function handleContactForm(event) {
             name: formData.name,
             timestamp: new Date().toISOString()
         });
-        
+
         console.log('📧 Sending contact form to global storage:', `${API_CONFIG.BACKEND_URL}/api/contact`);
 
         // Send to global storage backend
@@ -955,7 +959,7 @@ async function handleContactForm(event) {
         } catch (apiError) {
             console.log('Global storage not available, showing success message anyway');
         }
-        
+
         // Always show success to user (message is tracked for admin)
         showNotification('Message sent successfully! We\'ll get back to you soon.', 'success');
         event.target.reset();
@@ -985,13 +989,13 @@ let chatbotOpen = false;
 function toggleChatbot() {
     const chatbotWindow = document.getElementById('chatbot-window');
     const chatbotToggle = document.getElementById('chatbot-toggle');
-    
+
     chatbotOpen = !chatbotOpen;
-    
+
     if (chatbotOpen) {
         chatbotWindow.classList.add('active');
         chatbotToggle.style.display = 'none';
-        
+
         // Track chatbot open
         trackEvent('chatbot_opened', {
             timestamp: new Date().toISOString()
@@ -1009,22 +1013,22 @@ function handleQuickResponse(type) {
         order: "To place an order, you can use our shopping cart on the website or contact us directly via WhatsApp at +918847306427. What would you like to order? 🛒",
         delivery: "We offer delivery across the Tricity! Delivery charges vary by location. Same-day delivery is available under certain conditions. We recommend ordering 2-3 days in advance for the best experience. 🚚"
     };
-    
+
     addMessage(responses[type], 'bot');
-    
+
     if (type === 'menu') {
         setTimeout(() => {
             addMenuCategories();
         }, 500);
     }
-    
+
     if (type === 'order') {
         setTimeout(() => {
             const whatsappBtn = document.createElement('button');
             whatsappBtn.textContent = '💬 Order via WhatsApp';
             whatsappBtn.style.cssText = 'background: #25d366; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; margin-top: 10px; width: 100%;';
             whatsappBtn.onclick = () => window.open('https://wa.me/918847306427?text=Hi! I\'d like to place an order from Warm Delights.', '_blank');
-            
+
             const messagesContainer = document.getElementById('chatbot-messages');
             const lastMessage = messagesContainer.lastElementChild;
             lastMessage.appendChild(whatsappBtn);
@@ -1042,22 +1046,22 @@ function addMenuCategories() {
     const messagesContainer = document.getElementById('chatbot-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot-message';
-    
+
     const messageText = document.createElement('p');
     messageText.textContent = 'Choose a category to see our delicious options:';
     messageDiv.appendChild(messageText);
-    
+
     const categoryButtons = document.createElement('div');
     categoryButtons.className = 'quick-buttons';
     categoryButtons.style.marginTop = '15px';
-    
+
     // Category buttons
     const categories = [
         { name: 'Cakes 🎂', id: 'cakes' },
         { name: 'Cupcakes 🧁', id: 'cupcakes' },
         { name: 'Cookies 🍪', id: 'cookies' }
     ];
-    
+
     categories.forEach(category => {
         const btn = document.createElement('button');
         btn.textContent = category.name;
@@ -1084,7 +1088,7 @@ function addMenuCategories() {
         };
         categoryButtons.appendChild(btn);
     });
-    
+
     messageDiv.appendChild(categoryButtons);
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1110,28 +1114,28 @@ function showCategoryItems(category) {
             { name: 'Butter Cream Cookies', price: '₹160/box', desc: 'Smooth butter cream cookies (250g box)' }
         ]
     };
-    
+
     const categoryNames = {
         cakes: 'Cakes 🎂',
         cupcakes: 'Cupcakes 🧁',
         cookies: 'Cookies 🍪'
     };
-    
+
     const messagesContainer = document.getElementById('chatbot-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot-message';
-    
+
     // Category header
     const headerText = document.createElement('p');
     headerText.textContent = `Our ${categoryNames[category]}:`;
     headerText.style.fontWeight = 'bold';
     headerText.style.marginBottom = '15px';
     messageDiv.appendChild(headerText);
-    
+
     // Items container
     const itemsContainer = document.createElement('div');
     itemsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
-    
+
     menuItems[category].forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.style.cssText = `
@@ -1140,37 +1144,37 @@ function showCategoryItems(category) {
             border-radius: 10px; 
             border-left: 3px solid var(--primary-pink);
         `;
-        
+
         const itemHeader = document.createElement('div');
         itemHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;';
-        
+
         const itemName = document.createElement('strong');
         itemName.textContent = item.name;
         itemName.style.color = 'var(--primary-pink)';
-        
+
         const itemPrice = document.createElement('span');
         itemPrice.textContent = item.price;
         itemPrice.style.cssText = 'color: var(--dark-pink); font-weight: bold;';
-        
+
         itemHeader.appendChild(itemName);
         itemHeader.appendChild(itemPrice);
-        
+
         const itemDesc = document.createElement('p');
         itemDesc.textContent = item.desc;
         itemDesc.style.cssText = 'font-size: 12px; color: var(--text-light); margin: 0;';
-        
+
         itemDiv.appendChild(itemHeader);
         itemDiv.appendChild(itemDesc);
         itemsContainer.appendChild(itemDiv);
     });
-    
+
     messageDiv.appendChild(itemsContainer);
-    
+
     // Add action buttons
     const actionButtons = document.createElement('div');
     actionButtons.className = 'quick-buttons';
     actionButtons.style.marginTop = '15px';
-    
+
     const addToCartBtn = document.createElement('button');
     addToCartBtn.textContent = '🛒 Add to Cart';
     addToCartBtn.onclick = () => {
@@ -1186,7 +1190,7 @@ function showCategoryItems(category) {
         font-size: 12px; 
         margin: 3px;
     `;
-    
+
     const backBtn = document.createElement('button');
     backBtn.textContent = '↩️ Back to Categories';
     backBtn.onclick = () => {
@@ -1203,7 +1207,7 @@ function showCategoryItems(category) {
         color: var(--text-dark); 
         margin: 3px;
     `;
-    
+
     const orderBtn = document.createElement('button');
     orderBtn.textContent = '💬 Order Now';
     orderBtn.onclick = () => {
@@ -1219,12 +1223,12 @@ function showCategoryItems(category) {
         font-size: 12px; 
         margin: 3px;
     `;
-    
+
     actionButtons.appendChild(addToCartBtn);
     actionButtons.appendChild(backBtn);
     actionButtons.appendChild(orderBtn);
     messageDiv.appendChild(actionButtons);
-    
+
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -1244,12 +1248,12 @@ function handleChatbotEnter(event) {
 function sendChatbotMessage() {
     const input = document.getElementById('chatbot-input-field');
     const message = input.value.trim();
-    
+
     if (message === '') return;
-    
+
     addMessage(message, 'user');
     input.value = '';
-    
+
     // Simple response logic
     setTimeout(() => {
         const response = generateChatbotResponse(message.toLowerCase());
@@ -1265,48 +1269,48 @@ function generateChatbotResponse(message) {
         setTimeout(() => addMenuCategories(), 500);
         return '';
     }
-    
+
     if (message.includes('price') || message.includes('cost') || message.includes('much')) {
         return "Our prices range from ₹160-₹550! Cookies start at ₹160/box, Cupcakes at ₹35/pc (min 4), and Cakes from ₹450. What specific item are you interested in? 💰";
     }
-    
+
     if (message.includes('cake')) {
         showCategoryItems('cakes');
         return '';
     }
-    
+
     if (message.includes('cookie')) {
         showCategoryItems('cookies');
         return '';
     }
-    
+
     if (message.includes('cupcake') || message.includes('muffin')) {
         showCategoryItems('cupcakes');
         return '';
     }
-    
+
     if (message.includes('delivery')) {
         return "We deliver across the Tricity! 🚚 Charges vary by location. Same-day delivery available. For best experience, order 2-3 days in advance.";
     }
-    
+
     if (message.includes('contact') || message.includes('phone') || message.includes('whatsapp')) {
         return "You can reach us at:\n📱 Mobile: +918847306427\n💬 WhatsApp: +918847306427\n📧 Email: dayitagoyal10@gmail.com\n📸 Instagram: @warmdelights";
     }
-    
+
     if (message.includes('custom')) {
         return "Yes! We love custom orders! 🎨 Check our Custom Orders section above or contact us on WhatsApp +918847306427 to discuss your requirements!";
     }
-    
+
     if (message.includes('eggless')) {
         return "All our products are 100% eggless! 🥚❌ Perfect for vegetarians and those with egg allergies. No compromise on taste or texture!";
     }
-    
+
     return "Thanks for your message! For specific questions, please contact us on WhatsApp +918847306427 or check our menu above. How else can I help you today? 😊";
 }
 
 function addMessage(text, sender) {
     if (text === '') return;
-    
+
     // Track chatbot interaction
     if (sender === 'user') {
         trackEvent('chat_message', {
@@ -1314,52 +1318,52 @@ function addMessage(text, sender) {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     const messagesContainer = document.getElementById('chatbot-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}-message`;
-    
+
     const messageText = document.createElement('p');
     messageText.textContent = text;
     messageDiv.appendChild(messageText);
-    
+
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 // **🚀 INITIALIZATION WITH GLOBAL STORAGE**
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 Initializing Warm Delights with Global Storage + Session Cache');
-    
+
     // Initialize forms
     const customForm = document.getElementById('customOrderForm');
     const contactForm = document.getElementById('contactForm');
-    
+
     if (customForm) {
         customForm.addEventListener('submit', handleCustomOrder);
     }
-    
+
     if (contactForm) {
         contactForm.addEventListener('submit', handleContactForm);
     }
-    
+
     // File size validation
     const fileInput = document.getElementById('referenceImage');
     if (fileInput) {
         fileInput.addEventListener('change', validateFileSize);
     }
-    
+
     // Load initial data
     loadTextMenu();
     loadGallery(); // Load from global storage with session cache
     updateCartCount();
-    
+
     // Auto-refresh gallery every 30 minutes
     setInterval(() => {
         console.log('🔄 Auto-refreshing gallery from global storage...');
         refreshGallery();
     }, 30 * 60 * 1000);
-    
+
     // Add CSS animations
     const style = document.createElement('style');
     style.textContent = `
@@ -1393,22 +1397,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Smooth scrolling for navigation links
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const navLinks = document.querySelectorAll('nav a[href^="#"]');
-    
+
     navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+        link.addEventListener('click', function (e) {
             e.preventDefault();
-            
+
             const targetId = this.getAttribute('href');
             const targetElement = document.querySelector(targetId);
-            
+
             if (targetElement) {
                 targetElement.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start'
                 });
-                
+
                 // Track navigation
                 trackEvent('navigation_clicked', {
                     target: targetId,
