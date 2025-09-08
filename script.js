@@ -1,7 +1,8 @@
-/* Warm Delights Frontend JavaScript - WITH GLOBAL STORAGE + SESSION CACHE */
+// Warm Delights Frontend JavaScript - WITH GLOBAL STORAGE + SESSION CACHE
 
 // **🌍 GLOBAL STORAGE + SESSION CACHE CONFIGURATION**
 const API_CONFIG = {
+    // Use your actual Railway backend URL
     BACKEND_URL: window.location.hostname === 'localhost' 
         ? 'http://localhost:5000' 
         : 'https://warm-delights-backend-production.up.railway.app',
@@ -10,13 +11,6 @@ const API_CONFIG = {
     CACHE_KEY: 'warmDelights_gallery_cache',
     CACHE_EXPIRY_KEY: 'warmDelights_cache_expiry',
     CACHE_DURATION: 15 * 60 * 1000, // 15 minutes
-
-    // Fallback image paths for maximum compatibility
-    IMAGE_PATHS: [
-        '/uploads/',
-        '/api/uploads/',
-        '/images/'
-    ]
 };
 
 // Global variables
@@ -45,7 +39,7 @@ const menuData = [
     { id: 11, name: 'Cheesecake Cupcakes', category: 'cupcakes', price: 55, minOrder: 4, minOrderText: 'Minimum 4 pieces', priceUnit: '/piece' }
 ];
 
-// **📊 ENHANCED ANALYTICS TRACKING WITH SESSION STORAGE**
+// **📊 ENHANCED ANALYTICS TRACKING**
 function trackEvent(eventType, data = {}) {
     // Store in session storage for current session
     const sessionEvents = JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]');
@@ -63,21 +57,6 @@ function trackEvent(eventType, data = {}) {
 
     sessionStorage.setItem('warmDelightsEvents', JSON.stringify(sessionEvents));
 
-    // Also store in localStorage for persistence (limited)
-    const persistentEvents = JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]');
-    persistentEvents.push({
-        type: eventType,
-        data: data,
-        timestamp: new Date().toISOString()
-    });
-
-    // Keep only last 500 persistent events
-    if (persistentEvents.length > 500) {
-        persistentEvents.splice(0, persistentEvents.length - 500);
-    }
-
-    localStorage.setItem('warmDelightsEvents', JSON.stringify(persistentEvents));
-
     // Send to global backend storage
     try {
         fetch(`${API_CONFIG.BACKEND_URL}/api/analytics/track`, {
@@ -93,7 +72,7 @@ function trackEvent(eventType, data = {}) {
             console.log('Analytics stored locally - backend offline');
         });
     } catch (error) {
-        console.log('Analytics stored in session/local storage');
+        console.log('Analytics stored in session storage');
     }
 }
 
@@ -149,64 +128,112 @@ function clearImageCache() {
 function createResponsiveImageElement(image) {
     const galleryItem = document.createElement('div');
     galleryItem.className = 'gallery-item';
+
     const img = document.createElement('img');
     img.alt = image.alt || 'Warm Delights Cake';
     img.className = 'responsive-img';
     img.loading = 'lazy';
-    img.setAttribute('aria-label', img.alt);
-    // Use full URL from backend metadata if available
-    const imageUrl = image.url || `${API_CONFIG.BACKEND_URL}/uploads/${image.filename || image}`;
-    img.src = imageUrl;
+    img.src = `${API_CONFIG.BACKEND_URL}${image.url}`;
+
     img.onerror = function () {
-        console.log(`Image failed: ${this.src}, showing placeholder`);
+        console.log(`Image failed: ${this.src}`);
         this.src = 'https://via.placeholder.com/300x200/f4c2c2/d67b8a?text=Warm+Delights';
         this.alt = 'Image not available';
     };
+
     img.onload = function () {
         console.log(`✅ Image loaded successfully: ${this.src}`);
         // Track image view
-        trackImageView(image.filename || image);
+        trackImageView(image.filename);
     };
+
+    // Add click handler for modal
     img.onclick = () => openImageModal(img.src);
+
     galleryItem.appendChild(img);
     return galleryItem;
 }
 
 // **🌍 LOAD GALLERY FROM GLOBAL STORAGE WITH SESSION CACHE**
 async function loadGallery() {
+    console.log('🖼️ Loading gallery with global storage + session cache...');
+
     const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) return;
+    if (!galleryGrid) {
+        console.log('Gallery grid not found');
+        return;
+    }
+
     try {
+        // Step 1: Check session cache first
         let images = getCachedImages();
         if (images && images.length > 0) {
+            console.log('⚡ Using cached images:', images.length);
             renderImages(images, 'session-cache');
             return;
         }
-        galleryGrid.innerHTML = `<div class="gallery-loading">Loading from global storage...</div>`;
-        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/gallery`, {
+
+        // Step 2: Show loading state
+        galleryGrid.innerHTML = `
+            <div class="gallery-loading" style="
+                text-align: center; 
+                padding: 60px 20px; 
+                color: var(--primary-pink);
+                grid-column: 1 / -1;
+                background: var(--light-pink);
+                border-radius: 15px;
+            ">
+                <div class="loading-spinner" style="
+                    border: 3px solid var(--secondary-pink);
+                    border-top: 3px solid var(--primary-pink);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 20px;
+                "></div>
+                <p>Loading from global storage...</p>
+            </div>
+        `;
+
+        // Step 3: Fetch from global backend storage
+        console.log('🌍 Fetching from global storage:', `${API_CONFIG.BACKEND_URL}/api/images`);
+
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/images`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors'
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (data.success && data.images.length > 0) {
-            images = data.images; // Use images array with full URLs
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        images = await response.json();
+        console.log(`✅ Loaded ${images.length} images from global storage`);
+
+        if (images.length > 0) {
+            // Cache the images in session storage
             cacheImages(images);
+
+            // Render images from global storage
             renderImages(images, 'global-storage');
-            trackEvent('gallery_loaded', { imageCount: images.length, source: 'global-storage' });
+
+            // Track successful load
+            trackEvent('gallery_loaded', {
+                imageCount: images.length,
+                source: 'global-storage',
+                cached: false
+            });
             return;
         }
-        // Fallback to localStorage if no images
-        const localImages = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
-        if (localImages.length > 0) {
-            renderImages(localImages, 'localStorage');
-            trackEvent('gallery_loaded', { imageCount: localImages.length, source: 'localStorage' });
-            return;
-        }
+
+        // Step 4: No images available
         showEmptyGallery();
+
     } catch (error) {
-        console.error('Gallery loading error:', error);
+        console.error('❌ Gallery loading error:', error);
         handleGalleryError(error);
     }
 }
@@ -215,20 +242,57 @@ async function loadGallery() {
 function renderImages(images, source) {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) return;
+
     galleryGrid.innerHTML = '';
+
     if (!images || images.length === 0) {
         showEmptyGallery();
         return;
     }
+
+    // Create cache indicator
+    if (source === 'session-cache') {
+        const cacheIndicator = document.createElement('div');
+        cacheIndicator.className = 'cache-indicator';
+        cacheIndicator.textContent = '⚡ Loaded from cache';
+        cacheIndicator.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(cacheIndicator);
+
+        setTimeout(() => {
+            if (document.body.contains(cacheIndicator)) {
+                cacheIndicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(cacheIndicator)) {
+                        document.body.removeChild(cacheIndicator);
+                    }
+                }, 300);
+            }
+        }, 2000);
+    }
+
     images.forEach((image, index) => {
-        // image can be an object with url or a string filename
-        const imageObj = typeof image === 'string' ? { filename: image } : image;
-        const imageItem = createResponsiveImageElement(imageObj);
+        const imageItem = createResponsiveImageElement(image);
+
+        // Add staggered animation
         imageItem.style.animationDelay = `${index * 0.1}s`;
         imageItem.style.animation = 'fadeInUp 0.5s ease forwards';
+
         galleryGrid.appendChild(imageItem);
     });
-    console.log(`Rendered ${images.length} images from ${source}`);
+
+    console.log(`🖼️ Rendered ${images.length} images from ${source}`);
 }
 
 function showEmptyGallery() {
@@ -337,7 +401,7 @@ window.addEventListener('load', function () {
 async function checkAPIConnection() {
     try {
         console.log('🔗 Checking global storage connection...');
-        const response = await fetch(API_CONFIG.BACKEND_URL.replace('/api', '/'));
+        const response = await fetch(`${API_CONFIG.BACKEND_URL}/health`);
         const data = await response.json();
         console.log('✅ Global Storage Status:', data);
         return true;
@@ -809,8 +873,6 @@ async function handleContactForm(event) {
             timestamp: new Date().toISOString()
         });
 
-        console.log('📧 Sending contact form to global storage:', `${API_CONFIG.BACKEND_URL}/api/contact`);
-
         // Send to global storage backend
         try {
             const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/contact`, {
@@ -818,8 +880,7 @@ async function handleContactForm(event) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
-                mode: 'cors'
+                body: JSON.stringify(formData)
             });
 
             if (response.ok) {
@@ -1303,7 +1364,6 @@ window.warmDelightsDebug = {
     clearSessionCache: clearImageCache,
     refreshGallery: refreshGallery,
     viewSessionEvents: () => console.log(JSON.parse(sessionStorage.getItem('warmDelightsEvents') || '[]')),
-    viewLocalEvents: () => console.log(JSON.parse(localStorage.getItem('warmDelightsEvents') || '[]')),
     testNotification: (msg, type) => showNotification(msg || 'Test notification', type || 'success')
 };
 
