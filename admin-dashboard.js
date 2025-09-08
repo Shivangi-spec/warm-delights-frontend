@@ -562,11 +562,11 @@ function displayAdminImages(images, source) {
 // **🗑️ DELETE IMAGE WITH GLOBAL STORAGE INTEGRATION**
 async function deleteImage(imageId) {
     if (!confirm('Are you sure you want to delete this image?')) return;
-    
+
     try {
         // Try to delete from global storage first
         const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
-        
+
         try {
             const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/${imageId}`, {
                 method: 'DELETE',
@@ -574,15 +574,15 @@ async function deleteImage(imageId) {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (response.ok) {
-                console.log('✅ Image deleted from global storage');
                 showStatus('✅ Image deleted from global storage', 'success');
-                
+
                 // Clear cache to force refresh
                 sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
                 sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
-                
+
+                // Reload gallery
                 loadAdminGallery();
                 trackAdminActivity('image_deleted_global', { imageId: imageId });
                 return;
@@ -590,21 +590,33 @@ async function deleteImage(imageId) {
         } catch (globalError) {
             console.log('Global storage delete failed, trying localStorage:', globalError);
         }
-        
+
         // Fallback: delete from localStorage
-        const images = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+        let images = JSON.parse(localStorage.getItem('adminGalleryImages') || '[]');
+
+        // Use loose equality to avoid type mismatch
         const imageToDelete = images.find(img => img.id == imageId);
-        const filteredImages = images.filter(img => img.id != imageId);
-        
-        localStorage.setItem('adminGalleryImages', JSON.stringify(filteredImages));
-        
+        if (!imageToDelete) {
+            showStatus('❌ Image not found in local storage', 'error');
+            return;
+        }
+
+        images = images.filter(img => img.id != imageId);
+        localStorage.setItem('adminGalleryImages', JSON.stringify(images));
+
+        // Clear session cache if used
+        sessionStorage.removeItem(API_CONFIG.CACHE_KEY);
+        sessionStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
+
+        // Reload gallery to reflect deletion
         loadAdminGallery();
-        showStatus('✅ Image deleted from local storage', 'warning');
-        trackAdminActivity('image_deleted_local', { 
+
+        showStatus('✅ Image deleted from local storage', 'success');
+        trackAdminActivity('image_deleted_local', {
             imageId: imageId,
-            imageName: imageToDelete?.name 
+            imageName: imageToDelete.name
         });
-        
+
     } catch (error) {
         console.error('Delete error:', error);
         showStatus('❌ Failed to delete image', 'error');
