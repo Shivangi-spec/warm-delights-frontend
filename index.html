@@ -401,6 +401,7 @@
     function updateGlobalStorageStatus(){
         const dot = document.getElementById('globalStorageStatusDot');
         const txt = document.getElementById('globalStorageStatusTxt');
+        
         fetch('https://warm-delights-backend-production.up.railway.app/health',{method:'GET'})
         .then(r=>r.json())
         .then(data=>{

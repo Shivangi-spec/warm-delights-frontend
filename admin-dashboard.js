@@ -78,7 +78,7 @@ function checkAdminAuth() {
     const token = localStorage.getItem('adminSession');
     if (token && token.startsWith('eyJ')) { // Only test if it's a JWT token
         try {
-            fetch('https://warm-delights-backend-production.up.railway.app/api/admin/analytics', {
+            fetch(`${API_CONFIG.BACKEND_URL}/api/admin/analytics`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -301,7 +301,7 @@ async function uploadImages() {
                 const formData = new FormData();
                 formData.append('image', file);
                 
-                const backendResponse = await fetch('https://warm-delights-backend-production.up.railway.app/api/admin/gallery/upload', {
+                const backendResponse = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/upload`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -445,8 +445,6 @@ async function loadAdminGallery() {
         // Step 1: Try session cache first
         const cached = sessionStorage.getItem(API_CONFIG.CACHE_KEY);
         const expiry = sessionStorage.getItem(API_CONFIG.CACHE_EXPIRY_KEY);
-
-        console.log('CACHED IMAGES: ',cached)
         
         if (cached && expiry && Date.now() < parseInt(expiry)) {
             const cacheData = JSON.parse(cached);
@@ -497,7 +495,6 @@ async function loadAdminGallery() {
         }
 
         throw new Error('Global storage not available');
-
     } catch (error) {
         console.log('⚠️ Global storage unavailable, using localStorage:', error);
         
@@ -511,101 +508,54 @@ async function loadAdminGallery() {
 // **🎨 DISPLAY ADMIN IMAGES WITH SOURCE INDICATOR**
 function displayAdminImages(images, source) {
     const galleryContainer = document.getElementById('adminGallery');
-    
+    if (!galleryContainer) return;
     if (images.length === 0) {
-        galleryContainer.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b4e57;">
-                <h3>No images uploaded yet</h3>
-                <p>Upload your first image to get started!</p>
-            </div>
-        `;
+        galleryContainer.innerHTML = `<div>No images uploaded yet</div>`;
         return;
     }
-
-    // Create source indicator
     const sourceIndicator = {
         'session-cache': { icon: '⚡', text: 'From Cache', color: '#4CAF50' },
         'global-storage': { icon: '🌍', text: 'Global Storage', color: '#2196F3' },
         'localStorage': { icon: '📱', text: 'Local Only', color: '#ff9800' }
     };
-
     const indicator = sourceIndicator[source] || sourceIndicator['localStorage'];
-
     galleryContainer.innerHTML = `
-        <div class="gallery-source-indicator" style="
-            text-align: center; 
-            margin-bottom: 20px; 
-            padding: 10px; 
-            background: ${indicator.color}; 
-            color: white; 
-            border-radius: 10px; 
-            font-size: 14px;
-        ">
+        <div class="gallery-source-indicator" style="background: ${indicator.color}; color: white;">
             ${indicator.icon} ${indicator.text} • ${images.length} images
         </div>
         ${images.map((image, index) => {
-            // Handle different image formats
-            const imageUrl = image.data || `${API_CONFIG.BACKEND_URL}/uploads/${image.filename || image}`;
-            const imageName = image.name || image.filename || image;
-            const imageDate = image.uploadDate || image.uploadedAt || 'Unknown';
+            const imageUrl = image.url || `${API_CONFIG.BACKEND_URL}/uploads/${image.filename || image}`;
+            const imageName = image.originalName || image.name || image.filename || image;
+            const imageDate = image.uploadedAt || image.uploadDate || 'Unknown';
             const imageSize = image.size ? `${(image.size / 1024).toFixed(1)} KB` : 'Unknown';
             const imageId = image.id || `${imageName}_${index}`;
-
             return `
                 <div class="admin-gallery-item" style="animation-delay: ${index * 0.1}s;">
-                    <img src="${imageUrl}" 
-                         alt="${imageName}"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                         loading="lazy">
-                    <div class="image-error" style="display: none; align-items: center; justify-content: center; height: 200px; background: #f5f5f5; color: #666; font-size: 12px;">
+                    <img src="${imageUrl}" alt="${imageName}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="image-error" style="display:none; align-items:center; justify-content:center; height:160px; background:#f5f5f5; color:#666; font-size:12px;">
                         Image Not Available
                     </div>
-                    ${source !== 'global-storage' ? `
-                        <button class="delete-btn" onclick="deleteImage('${imageId}')" title="Delete image">
-                            ✕
-                        </button>
-                    ` : ''}
+                    ${source !== 'global-storage' ? `<button class="delete-btn" onclick="deleteImage('${imageId}')" title="Delete image">✕</button>` : ''}
                     <div class="image-info">
                         <p class="image-name" title="${imageName}">${imageName}</p>
                         <div class="image-details">
-                            <span class="image-date">${new Date(imageDate).toLocaleDateString()}</span>
-                            <span class="image-size">${imageSize}</span>
+                            <span>${new Date(imageDate).toLocaleDateString()}</span>
+                            <span>${imageSize}</span>
                         </div>
-                        <div class="image-status" style="margin-top: 5px;">
-                            <span class="status-badge" style="
-                                background: ${indicator.color}; 
-                                color: white; 
-                                padding: 2px 6px; 
-                                border-radius: 10px; 
-                                font-size: 10px;
-                            ">${indicator.text}</span>
+                        <div class="image-status" style="margin-top:5px;">
+                            <span class="status-badge" style="background: ${indicator.color}; color: white; font-size: 10px; border-radius: 10px; padding: 2px 6px;">
+                                ${indicator.text}
+                            </span>
                         </div>
                     </div>
                 </div>
             `;
         }).join('')}
     `;
-
-    // Update analytics with image count
+    // Update image uploads count in analytics UI
     const imageUploadsElement = document.getElementById('imageUploads');
     if (imageUploadsElement) {
         imageUploadsElement.textContent = images.length;
-    }
-
-    // Add CSS animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .admin-gallery-item {
-            animation: fadeInUp 0.5s ease forwards;
-        }
-    `;
-    if (!document.getElementById('admin-gallery-animations')) {
-        style.id = 'admin-gallery-animations';
-        document.head.appendChild(style);
     }
 }
 
@@ -616,7 +566,6 @@ async function deleteImage(imageId) {
     try {
         // Try to delete from global storage first
         const token = localStorage.getItem('adminSession') || API_CONFIG.ADMIN_TOKEN;
-        console.log(token);
         
         try {
             const response = await fetch(`${API_CONFIG.BACKEND_URL}/api/admin/gallery/${imageId}`, {
@@ -754,7 +703,7 @@ function getLocalAnalyticsData() {
         chatInteractions: allEvents.filter(e => e.type === 'chat_message').length,
         contactSubmissions: allEvents.filter(e => e.type === 'contact_submit').length,
         imageUploads: adminImages.length,
-        imageViews: allEvents.filter(e => e.type === 'gallery_viewed').length
+        imageViews: allEvents.filter(e => e.type === 'image_view').length
     };
 }
 
@@ -867,42 +816,22 @@ function getActivityDescription(action) {
 // **📱 ENHANCED STATUS MESSAGES**
 function showStatus(message, type = 'info') {
     const statusDiv = document.getElementById('uploadStatus');
-    if (!statusDiv) {
-        console.log(`${type.toUpperCase()}: ${message}`);
-        return;
-    }
-    
-    const colors = {
-        'success': '#4CAF50',
-        'error': '#f44336',
-        'warning': '#ff9800',
-        'info': '#2196F3'
-    };
-    
+    if (!statusDiv) return;
+
     const icons = {
         'success': '✅',
-        'error': '❌',
+        'error': '❌', 
         'warning': '⚠️',
         'info': 'ℹ️'
     };
-    
+
     statusDiv.innerHTML = `
-        <div class="status-message ${type}" style="
-            background: ${colors[type] || colors.info};
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideInRight 0.3s ease;
-        ">
+        <div class="status-message ${type}">
             <span>${icons[type] || icons.info}</span>
             <span>${message}</span>
         </div>
     `;
-    
+
     setTimeout(() => {
         statusDiv.innerHTML = '';
     }, 5000);
@@ -1027,28 +956,16 @@ window.adminDebugTools = {
     checkGlobalStorage: () => fetch(`${API_CONFIG.BACKEND_URL}/health`).then(r => r.json()),
     clearAllCaches: () => {
         sessionStorage.clear();
-        localStorage.removeItem(API_CONFIG.CACHE_KEY);
-        localStorage.removeItem(API_CONFIG.CACHE_EXPIRY_KEY);
-        console.log('All caches cleared');
+        showStatus('🗑️ All caches cleared', 'info');
     },
-    syncNow: syncWithGlobalStorage,
-    viewSessionData: () => {
-        console.log('Session Activities:', JSON.parse(sessionStorage.getItem('adminSessionActivities') || '[]'));
-        console.log('Session Cache:', JSON.parse(sessionStorage.getItem(API_CONFIG.CACHE_KEY) || 'null'));
-    },
-    testUpload: () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = e => {
-            window.selectedFiles = Array.from(e.target.files);
-            uploadImages();
-        };
-        input.click();
+    testConnection: () => {
+        showStatus('🔗 Testing connection...', 'info');
+        checkAPIConnection();
     }
 };
 
-console.log('🛠️ Admin Debug Tools Available:', window.adminDebugTools);
+console.log('🚀 Warm Delights Admin Dashboard v3.0.0 loaded');
+console.log('🛠️ Debug tools available:', window.adminDebugTools);
 
 // Add loading styles
 const adminStyles = document.createElement('style');

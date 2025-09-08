@@ -1,918 +1,352 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Global Management Portal - Warm Delights</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Progressive-Web-App & mobile friendliness -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <title>Admin Login – Warm Delights Global Storage</title>
+
+    <!-- Google Fonts (same stack as dashboard) -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* ---------- THEME VARIABLES (shared with dashboard) ---------- */
+        :root{
+            --primary-pink:#e8a5b7;
+            --secondary-pink:#f4c2c2;
+            --dark-pink:#d67b8a;
+            --light-pink:#fdf2f8;
+            --text-dark:#4a2e38;
+            --text-light:#6b4e57;
+            --white:#ffffff;
+            --success:#4caf50;
+            --error:#f44336;
+            --shadow:0 4px 6px rgba(0,0,0,.1);
         }
-        
-        :root {
-            --primary-pink: #e8a5b7;
-            --secondary-pink: #f4c2c2;
-            --light-pink: #fdf2f8;
-            --dark-pink: #d67b8a;
-            --text-dark: #4a2e38;
-            --text-light: #6b4e57;
-            --white: #ffffff;
-            --success: #4CAF50;
-            --warning: #ff9800;
-            --error: #f44336;
-            --info: #2196F3;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+        /* ---------- RESET ---------- */
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+        body{
+            font-family:"Open Sans",sans-serif;
+            background:var(--light-pink);
+            color:var(--text-dark);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
+
+        /* ---------- LOGIN CARD ---------- */
+        .login-card{
+            width:100%;
+            max-width:420px;
+            background:var(--white);
+            border-radius:15px;
+            padding:40px 30px 35px;
+            box-shadow:var(--shadow);
+            position:relative;
+            overflow:hidden;
+            animation:fadeIn .6s ease;
         }
-        
-        /* Animated Background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-            animation: backgroundMove 20s ease-in-out infinite;
-            pointer-events: none;
+
+        .login-card::before{
+            content:'';
+            position:absolute;
+            top:0;left:0;right:0;
+            height:4px;
+            background:linear-gradient(90deg,var(--primary-pink),var(--dark-pink));
         }
-        
-        @keyframes backgroundMove {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(-20px, -20px) rotate(1deg); }
-            66% { transform: translate(20px, -10px) rotate(-1deg); }
+
+        .login-card h1{
+            text-align:center;
+            font-size:1.6rem;
+            font-weight:700;
+            margin-bottom:25px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+            color:var(--primary-pink);
         }
-        
-        .admin-login-container {
-            background: var(--white);
-            padding: 50px;
-            border-radius: 25px;
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-            position: relative;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+
+        /* Logo placeholder (optional) */
+        .login-logo{
+            width:70px;
+            height:70px;
+            border-radius:50%;
+            object-fit:cover;
+            border:3px solid rgba(0,0,0,.05);
+            display:block;
+            margin:0 auto 15px;
         }
-        
-        .admin-login-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, var(--primary-pink), var(--dark-pink));
-            border-radius: 25px 25px 0 0;
+
+        /* ---------- FORM ---------- */
+        .input-group{
+            margin-bottom:22px;
+            position:relative;
         }
-        
-        .global-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            animation: pulse 2s infinite;
+
+        .input-group label{
+            display:block;
+            font-weight:600;
+            margin-bottom:8px;
+            font-size:.9rem;
         }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
+
+        .input-group input{
+            width:100%;
+            padding:12px 14px;
+            border:2px solid var(--secondary-pink);
+            border-radius:10px;
+            font-size:.95rem;
+            transition:border-color .3s,box-shadow .3s;
         }
-        
-        .admin-login-container h2 {
-            color: var(--primary-pink);
-            margin-bottom: 10px;
-            font-size: 2.2rem;
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+        .input-group input:focus{
+            outline:none;
+            border-color:var(--primary-pink);
+            box-shadow:0 0 0 3px rgba(232,165,183,.25);
         }
-        
-        .admin-login-container .subtitle {
-            color: var(--text-light);
-            margin-bottom: 40px;
-            font-size: 1rem;
-            font-weight: 500;
+
+        /* Show/Hide toggle */
+        .toggle-password{
+            position:absolute;
+            top:36px;
+            right:14px;
+            font-size:1rem;
+            cursor:pointer;
+            user-select:none;
+            color:var(--text-light);
         }
-        
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+
+        .remember-line{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            font-size:.85rem;
+            margin-bottom:20px;
         }
-        
-        .input-group {
-            position: relative;
+
+        /* ---------- BUTTON ---------- */
+        .btn{
+            width:100%;
+            padding:14px;
+            border:none;
+            border-radius:25px;
+            background:linear-gradient(135deg,var(--primary-pink),var(--dark-pink));
+            color:var(--white);
+            font-weight:700;
+            font-size:1rem;
+            cursor:pointer;
+            transition:transform .25s,box-shadow .25s;
         }
-        
-        .input-group input {
-            width: 100%;
-            padding: 18px 20px;
-            border: 2px solid var(--secondary-pink);
-            border-radius: 15px;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            background: var(--white);
-            color: var(--text-dark);
+
+        .btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(232,165,183,.4)}
+        .btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+
+        /* ---------- STATUS & CONNECTION ---------- */
+        .status-message{
+            margin-top:18px;
+            padding:12px 15px;
+            border-radius:10px;
+            font-weight:600;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-size:.9rem;
+            border:2px solid transparent;
         }
-        
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--primary-pink);
-            box-shadow: 0 0 0 4px rgba(232, 165, 183, 0.15);
-            transform: translateY(-2px);
+        .status-message.success{background:#e8f5e8;border-color:var(--success);color:var(--success)}
+        .status-message.error{background:#ffeaea;border-color:var(--error);color:var(--error)}
+        .status-message.info{background:#e3f2fd;border-color:#2196f3;color:#1565c0}
+
+        .connection-pill{
+            position:fixed;
+            top:10px;
+            left:50%;
+            transform:translateX(-50%);
+            background:var(--success);
+            color:#fff;
+            padding:4px 12px;
+            border-radius:20px;
+            font-size:.75rem;
+            font-weight:600;
+            display:flex;
+            align-items:center;
+            gap:6px;
+            z-index:1000;
+            animation:pillPulse 2s infinite;
         }
-        
-        .input-group input::placeholder {
-            color: var(--text-light);
-            font-weight: 400;
-        }
-        
-        .input-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-light);
-            font-size: 18px;
-            pointer-events: none;
-        }
-        
-        .login-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, var(--primary-pink), var(--dark-pink));
-            color: white;
-            border: none;
-            border-radius: 15px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .login-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .login-btn:hover::before {
-            left: 100%;
-        }
-        
-        .login-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(232, 165, 183, 0.4);
-        }
-        
-        .login-btn:active {
-            transform: translateY(-1px);
-        }
-        
-        .login-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .login-btn:disabled::before {
-            display: none;
-        }
-        
-        .message {
-            min-height: 25px;
-            padding: 8px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            border: 2px solid #ffcdd2;
-        }
-        
-        .success-message {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 2px solid #c8e6c9;
-        }
-        
-        .warning-message {
-            background: #fff8e1;
-            color: #ef6c00;
-            border: 2px solid #ffecb3;
-        }
-        
-        .info-message {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 2px solid #bbdefb;
-        }
-        
-        .attempts-warning {
-            background: #ffebee;
-            color: #c62828;
-            border: 2px solid #ffcdd2;
-            animation: shake 0.5s ease-in-out;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        .security-note {
-            margin-top: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, rgba(232, 165, 183, 0.1), rgba(214, 123, 138, 0.1));
-            border: 1px solid var(--secondary-pink);
-            border-radius: 15px;
-            font-size: 13px;
-            color: var(--text-light);
-            line-height: 1.6;
-            text-align: left;
-        }
-        
-        .security-note strong {
-            color: var(--primary-pink);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        
-        .features-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin-top: 15px;
-            font-size: 12px;
-        }
-        
-        .feature-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-light);
-        }
-        
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 25px;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-        }
-        
-        .loading-overlay.show {
-            display: flex;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--secondary-pink);
-            border-top: 4px solid var(--primary-pink);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        .loading-text {
-            color: var(--primary-pink);
-            font-weight: 600;
-            font-size: 16px;
-        }
-        
-        .loading-steps {
-            margin-top: 15px;
-            font-size: 12px;
-            color: var(--text-light);
-            text-align: center;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .connection-status {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-        
-        .connection-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: connectionPulse 2s infinite;
-        }
-        
-        .connection-dot.offline {
-            background: var(--error);
-            animation: none;
-        }
-        
-        @keyframes connectionPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Enhanced Responsive Design */
-        @media (max-width: 768px) {
-            .admin-login-container {
-                margin: 15px;
-                padding: 35px 30px;
-                max-width: 400px;
-            }
-            
-            .admin-login-container h2 {
-                font-size: 1.8rem;
-            }
-            
-            .connection-status {
-                top: 15px;
-                right: 15px;
-                font-size: 11px;
-                padding: 6px 10px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-            
-            .admin-login-container {
-                padding: 30px 25px;
-                margin: 10px;
-            }
-            
-            .admin-login-container h2 {
-                font-size: 1.6rem;
-            }
-            
-            .admin-login-container .subtitle {
-                font-size: 0.9rem;
-            }
-            
-            .input-group input {
-                padding: 16px 18px;
-                font-size: 15px;
-            }
-            
-            .login-btn {
-                padding: 16px;
-                font-size: 15px;
-            }
-        }
-        
-        /* Reduce motion for accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
+        .dot{width:8px;height:8px;border-radius:50%;background:#4caf50}
+
+        .offline{background:var(--error)!important}
+        .offline .dot{background:var(--error)!important;animation:none}
+
+        @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+        @keyframes pillPulse{0%,100%{opacity:1}50%{opacity:.75}}
+
+        /* ---------- RESPONSIVE ---------- */
+        @media(max-width:480px){
+            .login-card{padding:30px 25px}
         }
     </style>
 </head>
+
 <body>
-    <!-- Connection Status Indicator -->
-    <div class="connection-status" id="connectionStatus">
-        <div class="connection-dot" id="connectionDot"></div>
-        <span id="connectionText">Connected</span>
+    <!-- Connection indicator -->
+    <div id="connectionStatus" class="connection-pill">
+        <span class="dot"></span> Online
     </div>
 
-    <div class="admin-login-container">
-        <!-- Global Storage Indicator -->
-        <div class="global-indicator">
-            🌍 Global Storage Portal
-        </div>
+    <!-- Login Card -->
+    <div class="login-card">
+        <img src="Logo.png" alt="Warm Delights Logo" class="login-logo" />
+        <h1>🧁 Admin Login</h1>
 
-        <h2>🔐 Management Portal</h2>
-        <p class="subtitle">Warm Delights Global Admin Access</p>
-        
-        <form id="adminLoginForm" class="login-form">
+        <form id="loginForm" autocomplete="off">
             <div class="input-group">
-                <input type="text" 
-                       id="adminUsername" 
-                       placeholder="Admin Access ID" 
-                       required 
-                       autocomplete="username"
-                       maxlength="50">
-                <div class="input-icon">👤</div>
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Admin username" required />
             </div>
-            
+
             <div class="input-group">
-                <input type="password" 
-                       id="adminPassword" 
-                       placeholder="Security Key" 
-                       required 
-                       autocomplete="current-password"
-                       maxlength="100">
-                <div class="input-icon">🔑</div>
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Password" required minlength="6" />
+                <span id="togglePwd" class="toggle-password">👁️</span>
             </div>
-            
-            <button type="submit" id="loginBtn" class="login-btn">
-                🚀 Authenticate & Access Global Storage
-            </button>
+
+            <div class="remember-line">
+                <input type="checkbox" id="rememberMe" />
+                <label for="rememberMe">Remember me (2 h session)</label>
+            </div>
+
+            <button type="submit" id="loginBtn" class="btn">Login</button>
+
+            <div id="statusBox"></div>
         </form>
-        
-        <div id="loginMessage" class="message"></div>
-        
-        <div class="security-note">
-            <strong>🛡️ Enhanced Security Features</strong>
-            <div class="features-list">
-                <div class="feature-item">
-                    <span>🌍</span>
-                    <span>Global Storage Integration</span>
-                </div>
-                <div class="feature-item">
-                    <span>🔒</span>
-                    <span>Multi-layer Authentication</span>
-                </div>
-                <div class="feature-item">
-                    <span>📊</span>
-                    <span>Real-time Analytics & Monitoring</span>
-                </div>
-                <div class="feature-item">
-                    <span>⚡</span>
-                    <span>Session Caching & Optimization</span>
-                </div>
-                <div class="feature-item">
-                    <span>🔐</span>
-                    <span>Brute Force Protection</span>
-                </div>
-            </div>
-            <br>
-            <small>This portal provides secure access to the global storage management system. All activities are logged and monitored for security purposes.</small>
-        </div>
-        
-        <div id="loadingOverlay" class="loading-overlay">
-            <div class="spinner"></div>
-            <div class="loading-text">Authenticating...</div>
-            <div class="loading-steps">
-                <div id="loadingStep">🔐 Validating credentials...</div>
-            </div>
-        </div>
     </div>
-    
+
+    <!-- ---------- SCRIPTS ---------- -->
     <script>
-        // **🌍 GLOBAL STORAGE AUTHENTICATION CONFIGURATION**
-        const AUTH_CONFIG = {
-            // Fixed backend URL
-            BACKEND_URL: 'https://warm-delights-backend-production.up.railway.app',
-            
-            // Security settings
-            MAX_ATTEMPTS: 5,
-            LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
-            ATTEMPT_RESET_TIME: 60 * 60 * 1000, // 1 hour
-            SESSION_DURATION: 2 * 60 * 60 * 1000, // 2 hours
-            
-            // Authentication timeout settings
-            AUTH_TIMEOUT: 8000, // 8 seconds timeout
-            AUTH_DELAY: 1000
+        /* ---------- CONFIG ---------- */
+        const API_CONFIG = {
+            BACKEND_URL:
+                location.hostname === "localhost"
+                    ? "http://localhost:5000"
+                    : "https://warm-delights-backend-production.up.railway.app",
         };
 
-        // **🔐 ENHANCED SECURITY FUNCTIONS**
-        function secureHash(str, salt = 'warmdelights2025') {
-            let hash = 5381;
-            const combined = str + salt;
-            for (let i = 0; i < combined.length; i++) {
-                hash = ((hash << 5) + hash) + combined.charCodeAt(i);
-            }
-            return Math.abs(hash).toString(36);
+        /* ---------- DOM REFS ---------- */
+        const form = document.getElementById("loginForm");
+        const loginBtn = document.getElementById("loginBtn");
+        const statusBox = document.getElementById("statusBox");
+        const togglePwd = document.getElementById("togglePwd");
+        const connectionStatus = document.getElementById("connectionStatus");
+
+        /* ---------- HELPERS ---------- */
+        function showStatus(msg, type = "info", duration = 5000) {
+            statusBox.innerHTML = `
+                <div class="status-message ${type}">
+                    ${type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️"}
+                    <span>${msg}</span>
+                </div>`;
+            if (duration)
+                setTimeout(() => (statusBox.innerHTML = ""), duration);
         }
 
-        function generateSessionToken() {
-            const timestamp = new Date().getTime();
-            const random = Math.random().toString(36).substring(2);
-            return secureHash(`${timestamp}_${random}`);
-        }
-
-        // **🚨 BRUTE FORCE PROTECTION**
-        function isLockedOut() {
-            const lockoutData = JSON.parse(localStorage.getItem('adminLockout') || '{}');
-            if (lockoutData.lockedUntil && new Date().getTime() < lockoutData.lockedUntil) {
-                return lockoutData;
-            }
-            return false;
-        }
-
-        function getFailedAttempts() {
-            const attemptData = JSON.parse(localStorage.getItem('adminAttempts') || '{}');
-            const now = new Date().getTime();
-            
-            if (attemptData.lastAttempt && (now - attemptData.lastAttempt) > AUTH_CONFIG.ATTEMPT_RESET_TIME) {
-                localStorage.removeItem('adminAttempts');
-                return 0;
-            }
-            
-            return attemptData.count || 0;
-        }
-
-        function recordFailedAttempt() {
-            const attemptData = {
-                count: getFailedAttempts() + 1,
-                lastAttempt: new Date().getTime(),
-                ip: 'protected'
-            };
-            
-            localStorage.setItem('adminAttempts', JSON.stringify(attemptData));
-            
-            if (attemptData.count >= AUTH_CONFIG.MAX_ATTEMPTS) {
-                const lockoutData = {
-                    lockedUntil: new Date().getTime() + AUTH_CONFIG.LOCKOUT_DURATION,
-                    reason: 'Too many failed attempts',
-                    timestamp: new Date().toISOString()
-                };
-                localStorage.setItem('adminLockout', JSON.stringify(lockoutData));
-            }
-            
-            return attemptData.count;
-        }
-
-        function clearFailedAttempts() {
-            localStorage.removeItem('adminAttempts');
-            localStorage.removeItem('adminLockout');
-        }
-
-        // **📱 UI MANAGEMENT FUNCTIONS**
-        function showMessage(message, type = 'info', duration = 5000) {
-            const messageEl = document.getElementById('loginMessage');
-            const icons = {
-                'success': '✅',
-                'error': '❌',
-                'warning': '⚠️',
-                'info': 'ℹ️'
-            };
-            
-            messageEl.className = `message ${type}-message`;
-            messageEl.innerHTML = `${icons[type]} ${message}`;
-            
-            if (duration > 0) {
-                setTimeout(() => {
-                    messageEl.className = 'message';
-                    messageEl.innerHTML = '';
-                }, duration);
-            }
-        }
-
-        function showLoading(show, step = 'Authenticating...') {
-            const overlay = document.getElementById('loadingOverlay');
-            const stepEl = document.getElementById('loadingStep');
-            const loginBtn = document.getElementById('loginBtn');
-            
-            if (show) {
-                overlay.classList.add('show');
-                stepEl.textContent = step;
-                loginBtn.disabled = true;
-            } else {
-                overlay.classList.remove('show');
-                loginBtn.disabled = false;
-            }
-        }
-
-        // **🌐 CONNECTION MONITORING**
-        function updateConnectionStatus() {
-            const dot = document.getElementById('connectionDot');
-            const text = document.getElementById('connectionText');
-            
-            if (navigator.onLine) {
-                dot.className = 'connection-dot';
-                text.textContent = 'Connected';
-                
-                // Test backend connection with timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                fetch(AUTH_CONFIG.BACKEND_URL + '/health', { 
-                    method: 'GET',
-                    signal: controller.signal
-                })
-                .then(response => {
-                    clearTimeout(timeoutId);
-                    if (response.ok) {
-                        dot.className = 'connection-dot';
-                        text.textContent = 'Global Storage Ready';
-                    } else {
-                        throw new Error('Backend unavailable');
-                    }
-                })
-                .catch(() => {
-                    clearTimeout(timeoutId);
-                    dot.className = 'connection-dot offline';
-                    text.textContent = 'Local Mode';
-                });
-            } else {
-                dot.className = 'connection-dot offline';
-                text.textContent = 'Offline';
-            }
-        }
-
-        // **🔓 FIXED AUTHENTICATION WITH PROPER TIMEOUT**
-        async function authenticateUser(username, password) {
-            showLoading(true, '🔐 Validating credentials...');
-            
-            // Add initial delay
-            await new Promise(resolve => setTimeout(resolve, AUTH_CONFIG.AUTH_DELAY));
-            
+        async function pingBackend() {
             try {
-                showLoading(true, '🌍 Connecting to global storage...');
-                
-                // Create timeout controller
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => {
-                    controller.abort();
-                    console.log('Authentication request timed out');
-                }, AUTH_CONFIG.AUTH_TIMEOUT);
-                
-                const response = await fetch(`${AUTH_CONFIG.BACKEND_URL}/api/admin/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        password: password
-                    }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showLoading(true, '✅ Authentication successful!');
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        
-                        // Store authentication data
-                        localStorage.setItem('isWarmDelightsAdmin', 'true');
-                        localStorage.setItem('adminSession', result.token || generateSessionToken());
-                        localStorage.setItem('adminLoginTime', new Date().toISOString());
-                        localStorage.setItem('globalStorageAuth', 'true');
-                        
-                        // Track successful login
-                        const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
-                        loginData.push({
-                            timestamp: new Date().toISOString(),
-                            method: 'global-storage',
-                            userAgent: navigator.userAgent.substring(0, 100)
-                        });
-                        
-                        if (loginData.length > 10) {
-                            loginData.splice(0, loginData.length - 10);
-                        }
-                        localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
-                        
-                        clearFailedAttempts();
-                        showLoading(true, '🚀 Redirecting to global dashboard...');
-                        
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        window.location.href = 'admin-dashboard.html';
-                        return true;
-                    } else {
-                        throw new Error(result.message || 'Authentication failed');
-                    }
-                } else {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                
-            } catch (error) {
-                console.log('Backend auth failed:', error.name, error.message);
-                
-                // Handle timeout specifically
-                if (error.name === 'AbortError') {
-                    showLoading(true, '⏱️ Connection timeout, trying local auth...');
-                } else {
-                    showLoading(true, '📱 Backend unavailable, using local auth...');
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Fallback authentication
-                const validUserHash = secureHash('warmdelights_admin');
-                const validPassHash = secureHash('SecurePass@2025!');
-                
-                const inputUserHash = secureHash(username);
-                const inputPassHash = secureHash(password);
-                
-                if (inputUserHash === validUserHash && inputPassHash === validPassHash) {
-                    showLoading(true, '✅ Local authentication successful!');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    // Store local authentication data
-                    localStorage.setItem('isWarmDelightsAdmin', 'true');
-                    localStorage.setItem('adminSession', generateSessionToken());
-                    localStorage.setItem('adminLoginTime', new Date().toISOString());
-                    localStorage.setItem('localAuth', 'true');
-                    
-                    // Track local login
-                    const loginData = JSON.parse(localStorage.getItem('adminLoginHistory') || '[]');
-                    loginData.push({
-                        timestamp: new Date().toISOString(),
-                        method: 'local-fallback',
-                        userAgent: navigator.userAgent.substring(0, 100)
-                    });
-                    
-                    if (loginData.length > 10) {
-                        loginData.splice(0, loginData.length - 10);
-                    }
-                    localStorage.setItem('adminLoginHistory', JSON.stringify(loginData));
-                    
-                    clearFailedAttempts();
-                    showLoading(true, '🚀 Redirecting to dashboard...');
-                    
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    window.location.href = 'admin-dashboard.html';
-                    return true;
-                } else {
-                    throw new Error('Invalid credentials');
-                }
+                await fetch(API_CONFIG.BACKEND_URL + "/health", { mode: "cors" });
+                connectionStatus.classList.remove("offline");
+                connectionStatus.querySelector("span:last-child").textContent =
+                    "Online";
+            } catch (_) {
+                connectionStatus.classList.add("offline");
+                connectionStatus.querySelector("span:last-child").textContent =
+                    "Offline";
             }
         }
 
-        // **📋 FORM HANDLING**
-        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+        /* ---------- LOGIN LOGIC ---------- */
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
-            
-            const lockout = isLockedOut();
-            if (lockout) {
-                const remainingTime = Math.ceil((lockout.lockedUntil - new Date().getTime()) / 60000);
-                showMessage(`Account locked for ${remainingTime} more minutes`, 'error');
-                return;
-            }
-            
-            const username = document.getElementById('adminUsername').value.trim();
-            const password = document.getElementById('adminPassword').value;
-            
-            if (!username || !password) {
-                showMessage('Please enter both Access ID and Security Key', 'warning');
-                return;
-            }
-            
+            loginBtn.disabled = true;
+            loginBtn.textContent = "Logging in…";
+            showStatus("Authenticating…", "info");
+
+            const body = {
+                username: document.getElementById("username").value.trim(),
+                password: document.getElementById("password").value,
+            };
+
             try {
-                await authenticateUser(username, password);
-                
-            } catch (error) {
-                showLoading(false);
-                
-                const attemptCount = recordFailedAttempt();
-                
-                if (attemptCount >= AUTH_CONFIG.MAX_ATTEMPTS) {
-                    showMessage('Too many failed attempts. Account locked for 15 minutes.', 'error');
-                    document.getElementById('loginBtn').disabled = true;
-                    
-                    // Auto-unlock after lockout period
-                    setTimeout(() => {
-                        location.reload();
-                    }, AUTH_CONFIG.LOCKOUT_DURATION);
-                } else {
-                    const remaining = AUTH_CONFIG.MAX_ATTEMPTS - attemptCount;
-                    showMessage(`Authentication failed. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`, 'error');
+                const res = await fetch(
+                    API_CONFIG.BACKEND_URL + "/api/admin/login",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    }
+                );
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    throw new Error(
+                        data.message || "Invalid credentials"
+                    );
                 }
-                
-                // Clear password field
-                document.getElementById('adminPassword').value = '';
+
+                /* ---------- STORE SESSION ---------- */
+                localStorage.setItem("isWarmDelightsAdmin", "true");
+                localStorage.setItem("adminSession", data.token);
+                localStorage.setItem(
+                    "adminLoginTime",
+                    new Date().toISOString()
+                );
+
+                if (document.getElementById("rememberMe").checked) {
+                    // persist token; already in localStorage
+                }
+
+                showStatus("Login successful! Redirecting…", "success", 1500);
+                setTimeout(() => (location.href = "admin-dashboard.html"), 1200);
+            } catch (err) {
+                console.error(err);
+                showStatus(err.message, "error");
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = "Login";
             }
         });
 
-        // **🚀 INITIALIZATION**
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check lockout status
-            const lockout = isLockedOut();
-            if (lockout) {
-                const remainingTime = Math.ceil((lockout.lockedUntil - new Date().getTime()) / 60000);
-                showMessage(`Account locked for ${remainingTime} minutes`, 'error', 0);
-                document.getElementById('loginBtn').disabled = true;
-                
-                setTimeout(() => {
-                    location.reload();
-                }, (lockout.lockedUntil - new Date().getTime()));
-            }
-            
-            // Show attempt warnings
-            const failedAttempts = getFailedAttempts();
-            if (failedAttempts > 0 && failedAttempts < AUTH_CONFIG.MAX_ATTEMPTS) {
-                const remaining = AUTH_CONFIG.MAX_ATTEMPTS - failedAttempts;
-                showMessage(`${failedAttempts}/${AUTH_CONFIG.MAX_ATTEMPTS} failed attempts. ${remaining} remaining.`, 'warning', 10000);
-            }
-            
-            // Update connection status
-            updateConnectionStatus();
-            
-            // Auto-focus username field
-            if (!lockout) {
-                document.getElementById('adminUsername').focus();
-            }
+        /* ---------- UI ENHANCEMENTS ---------- */
+        togglePwd.addEventListener("click", () => {
+            const pwdField = document.getElementById("password");
+            pwdField.type = pwdField.type === "password" ? "text" : "password";
+            togglePwd.textContent =
+                pwdField.type === "password" ? "👁️" : "🙈";
         });
 
-        // **🔒 SECURITY ENHANCEMENTS**
-        
-        // Monitor connection status
-        window.addEventListener('online', updateConnectionStatus);
-        window.addEventListener('offline', updateConnectionStatus);
-        
-        // Update connection status every 30 seconds
-        setInterval(updateConnectionStatus, 30000);
-        
-        // Clear form on page unload
-        window.addEventListener('beforeunload', function() {
-            document.getElementById('adminUsername').value = '';
-            document.getElementById('adminPassword').value = '';
+        /* ---------- KEYBOARD SHORTCUTS ---------- */
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && e.ctrlKey) {
+                form.requestSubmit();
+            }
+            if (e.key === "Escape") form.reset();
         });
 
-        // **🔍 DEBUG TOOLS**
-        window.warmDelightsAuth = {
-            version: '3.0.1',
-            features: ['Global Storage Auth', 'Local Fallback', 'Timeout Handling', 'Enhanced Security'],
-            config: AUTH_CONFIG,
-            testConnection: updateConnectionStatus,
-            clearLockout: () => {
-                clearFailedAttempts();
-                location.reload();
-            },
-            testAuth: () => {
-                console.log('Testing backend connection...');
-                fetch(AUTH_CONFIG.BACKEND_URL + '/api')
-                    .then(r => r.json())
-                    .then(data => console.log('✅ Backend response:', data))
-                    .catch(err => console.error('❌ Backend error:', err));
-            }
-        };
-        
-        console.log('🔐 Warm Delights Auth v3.0.1 loaded');
-        console.log('🛠️ Debug tools available:', window.warmDelightsAuth);
+        /* ---------- CONNECTION POLL ---------- */
+        pingBackend();
+        setInterval(pingBackend, 30000);
     </script>
 </body>
 </html>
